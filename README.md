@@ -1,1 +1,1 @@
-# book-management-system
+# collection-management-system
