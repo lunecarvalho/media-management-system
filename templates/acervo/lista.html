@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}Acervo - MediaTrack{% endblock %}
+
+{% block titulo_pagina %}Acervo{% endblock %}
+
+{% block descricao_pagina %}Gerencie todos os CDs e DVDs cadastrados.{% endblock %}
+
+{% block conteudo %}
+<div class="dashboard-container">
+    <div class="tabela-wrapper">
+        <div class="tabela-header flex-entre">
+            <div>
+                <h2 class="tabela-titulo">Itens do acervo</h2>
+            </div>
+            <a href="{% url 'acervo:cadastrar' %}" class="btn btn-primaria">Cadastrar item</a>
+        </div>
+
+        <form method="get" class="filtros-acervo">
+            <input type="search" name="q" value="{{ consulta }}" placeholder="Buscar por título, artista ou código">
+            <select name="tipo">
+                <option value="">Todos os tipos</option>
+                <option value="CD" {% if tipo_atual == 'CD' %}selected{% endif %}>CD</option>
+                <option value="DVD" {% if tipo_atual == 'DVD' %}selected{% endif %}>DVD</option>
+            </select>
+            <select name="status">
+                <option value="">Todos os status</option>
+                <option value="disponivel" {% if status_atual == 'disponivel' %}selected{% endif %}>Disponível</option>
+                <option value="reservado" {% if status_atual == 'reservado' %}selected{% endif %}>Reservado</option>
+                <option value="vendido" {% if status_atual == 'vendido' %}selected{% endif %}>Vendido</option>
+            </select>
+            <button type="submit" class="btn btn-secundaria">Filtrar</button>
+        </form>
+
+        <div class="tabela-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Tipo</th>
+                        <th>Código</th>
+                        <th>Categoria</th>
+                        <th>Localização</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in itens %}
+                    <tr>
+                        <td><strong>{{ item.titulo }}</strong><br><span class="texto-secundario">{{ item.artista_diretor }}</span></td>
+                        <td><span class="badge badge-{{ item.tipo|lower }}">{{ item.tipo }}</span></td>
+                        <td>{{ item.codigo_barras }}</td>
+                        <td>{{ item.categoria.nome }}</td>
+                        <td>{{ item.localizacao|default:"-" }}</td>
+                        <td><span class="badge badge-{{ item.status }}">{{ item.get_status_display }}</span></td>
+                        <td>
+                            <a href="{% url 'acervo:detalhe' item.pk %}" class="btn btn-secundaria btn-pequeno">Ver</a>
+                            <a href="{% url 'acervo:editar' item.pk %}" class="btn btn-secundaria btn-pequeno">Editar</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="texto-centro texto-secundario">Nenhum item encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

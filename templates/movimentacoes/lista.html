@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}Movimentações - MediaTrack{% endblock %}
+
+{% block titulo_pagina %}Movimentações{% endblock %}
+
+{% block descricao_pagina %}Histórico completo de movimentações do acervo.{% endblock %}
+
+{% block conteudo %}
+<div class="dashboard-container">
+    <div class="tabela-wrapper">
+        <div class="tabela-header"><h2 class="tabela-titulo">Histórico de movimentações</h2></div>
+        <form method="get" class="filtros-acervo">
+            <input type="search" name="q" value="{{ consulta }}" placeholder="Buscar por item, código ou usuário">
+            <button type="submit" class="btn btn-secundaria">Buscar</button>
+        </form>
+        <div class="tabela-container">
+            <table>
+                <thead><tr><th>Item</th><th>Movimento</th><th>Usuário</th><th>Data</th><th>Detalhes</th></tr></thead>
+                <tbody>
+                    {% for movimentacao in movimentacoes %}
+                    <tr>
+                        <td>{{ movimentacao.item.titulo }}</td>
+                        <td><span class="badge badge-{{ movimentacao.tipo }}">{{ movimentacao.get_tipo_display }}</span></td>
+                        <td>{{ movimentacao.usuario.get_full_name|default:movimentacao.usuario.username }}</td>
+                        <td>{{ movimentacao.data|date:"d/m/Y H:i" }}</td>
+                        <td>{{ movimentacao.detalhes|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="texto-centro texto-secundario">Nenhuma movimentação encontrada.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

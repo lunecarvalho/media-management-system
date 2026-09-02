@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}Excluir item - MediaTrack{% endblock %}
+
+{% block titulo_pagina %}Excluir item{% endblock %}
+
+{% block descricao_pagina %}Confirme a remoção do item do acervo.{% endblock %}
+
+{% block conteudo %}
+<div class="dashboard-container pagina-simples">
+    <section class="card">
+        <h2>Excluir "{{ item.titulo }}"?</h2>
+        <p class="texto-secundario">Esta ação remove o item e seu histórico de movimentações permanentemente.</p>
+        <form method="post" class="linha-formulario" style="border: 0; padding-top: 20px;">
+            {% csrf_token %}
+            <a href="{% url 'acervo:detalhe' item.pk %}" class="btn btn-secundaria">Cancelar</a>
+            <button type="submit" class="btn btn-aviso">Confirmar exclusão</button>
+        </form>
+    </section>
+</div>
+{% endblock %}

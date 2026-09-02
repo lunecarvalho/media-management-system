@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}{{ item.titulo }} - MediaTrack{% endblock %}
+
+{% block titulo_pagina %}{{ item.titulo }}{% endblock %}
+
+{% block descricao_pagina %}Detalhes do item no acervo.{% endblock %}
+
+{% block conteudo %}
+<div class="dashboard-container pagina-simples">
+    <section class="card resultado-codigo">
+        <div class="formulario-cabecalho flex-entre">
+            <div>
+                <span class="badge badge-{{ item.tipo|lower }}">{{ item.tipo }}</span>
+                <h2>{{ item.titulo }}</h2>
+                <p class="texto-secundario">{{ item.artista_diretor }}{% if item.ano %} · {{ item.ano }}{% endif %}</p>
+            </div>
+            <div class="linha-formulario" style="border: 0; padding: 0;">
+                <a href="{% url 'acervo:editar' item.pk %}" class="btn btn-secundaria">Editar</a>
+                <a href="{% url 'acervo:excluir' item.pk %}" class="btn btn-aviso">Excluir</a>
+            </div>
+        </div>
+
+        <dl class="detalhes-item">
+            <div><dt>Código</dt><dd>{{ item.codigo_barras }}</dd></div>
+            <div><dt>Categoria</dt><dd>{{ item.categoria.nome }}</dd></div>
+            <div><dt>Gravadora/Distribuidora</dt><dd>{{ item.gravadora_distribuidora|default:"Não informada" }}</dd></div>
+            <div><dt>Estado de conservação</dt><dd>{{ item.get_estado_conservacao_display }}</dd></div>
+            <div><dt>Preço</dt><dd>{% if item.preco %}R$ {{ item.preco }}{% else %}Não informado{% endif %}</dd></div>
+            <div><dt>Localização</dt><dd>{{ item.localizacao|default:"Não informada" }}</dd></div>
+            <div><dt>Status</dt><dd><span class="badge badge-{{ item.status }}">{{ item.get_status_display }}</span></dd></div>
+            <div><dt>Cadastrado em</dt><dd>{{ item.data_cadastro|date:"d/m/Y H:i" }}</dd></div>
+        </dl>
+
+        {% if item.descricao %}
+        <p class="texto-secundario" style="margin-top: 20px;">{{ item.descricao }}</p>
+        {% endif %}
+    </section>
+
+    <div class="tabela-wrapper">
+        <div class="tabela-header"><h2 class="tabela-titulo">Movimentações deste item</h2></div>
+        <div class="tabela-container">
+            <table>
+                <thead><tr><th>Movimento</th><th>Usuário</th><th>Data</th><th>Detalhes</th></tr></thead>
+                <tbody>
+                    {% for movimentacao in movimentacoes %}
+                    <tr>
+                        <td><span class="badge badge-{{ movimentacao.tipo }}">{{ movimentacao.get_tipo_display }}</span></td>
+                        <td>{{ movimentacao.usuario.get_full_name|default:movimentacao.usuario.username }}</td>
+                        <td>{{ movimentacao.data|date:"d/m/Y H:i" }}</td>
+                        <td>{{ movimentacao.detalhes|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="texto-centro texto-secundario">Nenhuma movimentação registrada.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

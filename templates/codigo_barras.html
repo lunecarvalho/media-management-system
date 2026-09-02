@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Código de barras - MediaTrack{% endblock %}
+{% block titulo_pagina %}Código de barras{% endblock %}
+{% block descricao_pagina %}Consulte um item pelo código de barras.{% endblock %}
+
+{% block conteudo %}
+<div class="dashboard-container pagina-simples">
+    <section class="card busca-codigo">
+        <h2>Consultar item</h2>
+        <p class="texto-secundario">Digite ou leia o código de barras para localizar um CD ou DVD.</p>
+        <form method="get" class="linha-formulario">
+            <input type="search" name="codigo" value="{{ codigo }}" placeholder="Código de barras" autofocus>
+            <button type="submit" class="btn btn-primaria">Consultar</button>
+        </form>
+    </section>
+
+    {% if codigo %}
+        {% if item %}
+        <section class="card resultado-codigo">
+            <span class="badge badge-{{ item.tipo|lower }}">{{ item.tipo }}</span>
+            <h2>{{ item.titulo }}</h2>
+            <p class="texto-secundario">{{ item.artista_diretor }}{% if item.ano %} · {{ item.ano }}{% endif %}</p>
+            <dl class="detalhes-item">
+                <div><dt>Código</dt><dd>{{ item.codigo_barras }}</dd></div>
+                <div><dt>Categoria</dt><dd>{{ item.categoria.nome }}</dd></div>
+                <div><dt>Localização</dt><dd>{{ item.localizacao|default:"Não informada" }}</dd></div>
+                <div><dt>Status</dt><dd><span class="badge badge-{{ item.status }}">{{ item.get_status_display }}</span></dd></div>
+            </dl>
+        </section>
+        {% else %}
+        <div class="alerta alerta-aviso">Nenhum item foi encontrado para o código <strong>{{ codigo }}</strong>.</div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block js_adicional %}
+<script>
+    // Mantém o foco no campo para que o leitor USB (modo teclado) sempre digite ali.
+    document.addEventListener('DOMContentLoaded', function () {
+        const campoCodigo = document.querySelector('.busca-codigo input[name="codigo"]');
+        if (!campoCodigo) return;
+
+        campoCodigo.focus();
+        document.addEventListener('click', function (evento) {
+            if (evento.target.closest('a, button')) return;
+            campoCodigo.focus();
+        });
+    });
+</script>
+{% endblock %}

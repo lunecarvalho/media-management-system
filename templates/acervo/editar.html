@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}Editar item - MediaTrack{% endblock %}
+
+{% block titulo_pagina %}Editar item{% endblock %}
+
+{% block descricao_pagina %}Atualize os dados de {{ item.titulo }}.{% endblock %}
+
+{% block conteudo %}
+<div class="dashboard-container">
+    <form method="post" class="formulario-item card">
+        {% csrf_token %}
+        <div class="formulario-cabecalho flex-entre">
+            <div>
+                <h2>Editar item</h2>
+                <p class="texto-secundario">Atualize os dados do item e salve as alterações.</p>
+            </div>
+            <a href="{% url 'acervo:detalhe' item.pk %}" class="btn btn-secundaria">Cancelar</a>
+        </div>
+
+        {% if form.non_field_errors %}
+            <div class="alerta alerta-erro">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="formulario-grade">
+            {% include 'acervo/_campos_formulario.html' %}
+        </div>
+
+        <div class="formulario-acoes">
+            <button type="submit" class="btn btn-primaria">Salvar alterações</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

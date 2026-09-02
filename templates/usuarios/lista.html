@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block titulo %}Usuários - MediaTrack{% endblock %}
+
+{% block titulo_pagina %}Usuários{% endblock %}
+
+{% block descricao_pagina %}Gerencie os usuários do sistema.{% endblock %}
+
+{% block conteudo %}
+<div class="dashboard-container">
+    <div class="tabela-wrapper">
+        <div class="tabela-header flex-entre">
+            <h2 class="tabela-titulo">Usuários cadastrados</h2>
+            <a href="/admin/auth/user/add/" class="btn btn-primaria">Novo usuário</a>
+        </div>
+        <div class="tabela-container">
+            <table>
+                <thead><tr><th>Usuário</th><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th></tr></thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td><strong>{{ usuario.username }}</strong></td>
+                        <td>{{ usuario.get_full_name|default:"-" }}</td>
+                        <td>{{ usuario.email|default:"-" }}</td>
+                        <td>{% if usuario.perfil %}{{ usuario.perfil.get_tipo_display }}{% else %}Sem perfil{% endif %}</td>
+                        <td><span class="badge {% if usuario.is_active %}badge-disponivel{% else %}badge-vendido{% endif %}">{% if usuario.is_active %}Ativo{% else %}Inativo{% endif %}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="texto-centro texto-secundario">Nenhum usuário cadastrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

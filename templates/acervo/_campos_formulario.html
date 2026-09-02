@@ -1,0 +1,7 @@
+{% for field in form %}
+<div class="campo-formulario {% if field.name == 'descricao' %}campo-largo{% endif %}">
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% for error in field.errors %}<span class="erro-campo">{{ error }}</span>{% endfor %}
+</div>
+{% endfor %}

@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar - MediaTrack</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}">
+
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 380px;
+            padding: 32px;
+        }
+
+        .login-marca {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .login-logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background-color: var(--cor-primaria);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--cor-fundo);
+            flex-shrink: 0;
+        }
+
+        .login-marca h1 {
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .login-marca small {
+            color: var(--cor-texto-secundario);
+        }
+
+        .login-form label {
+            margin-top: 16px;
+        }
+
+        .login-form button {
+            width: 100%;
+            margin-top: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card login-card">
+        <div class="login-marca">
+            <div class="login-logo">MT</div>
+            <div>
+                <h1>MediaTrack</h1>
+                <small>Acervo físico</small>
+            </div>
+        </div>
+
+        {% if form.errors %}
+        <div class="alerta alerta-erro">Usuário ou senha inválidos.</div>
+        {% endif %}
+
+        <form method="post" class="login-form">
+            {% csrf_token %}
+            <label for="id_username">Usuário</label>
+            <input type="text" name="username" id="id_username" autofocus required>
+
+            <label for="id_password">Senha</label>
+            <input type="password" name="password" id="id_password" required>
+
+            <input type="hidden" name="next" value="{{ next }}">
+            <button type="submit" class="btn btn-primaria">Entrar</button>
+        </form>
+    </div>
+</body>
+</html>

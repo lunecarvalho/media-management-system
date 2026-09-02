@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Configurações - MediaTrack{% endblock %}
+{% block titulo_pagina %}Configurações{% endblock %}
+{% block descricao_pagina %}Preferências e informações do sistema.{% endblock %}
+
+{% block conteudo %}
+<div class="dashboard-container pagina-simples grade-configuracoes">
+    <section class="card">
+        <h2>Leitor de código de barras</h2>
+        <p class="texto-secundario">Status atual do dispositivo configurado para leitura de itens.</p>
+        <div class="status-configuracao"><span class="status-ponto"></span><span>Leitor conectado</span></div>
+    </section>
+    <section class="card">
+        <h2>Dados do acervo</h2>
+        <p class="texto-secundario">Gerencie CDs, DVDs, categorias, movimentações e usuários pelas áreas correspondentes do menu.</p>
+        <a href="{% url 'acervo:lista' %}" class="btn btn-secundaria">Abrir acervo</a>
+    </section>
+</div>
+{% endblock %}

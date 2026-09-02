@@ -1,0 +1,143 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block titulo %}MediaTrack - Acervo Físico{% endblock %}</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}">
+    <link rel="stylesheet" href="{% static 'css/layout-fixed.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard-fixed.css' %}">
+    {% block css_adicional %}{% endblock %}
+</head>
+<body>
+    <div class="layout">
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <!-- Logo e Título -->
+            <div class="sidebar-topo">
+                <div class="sidebar-logo">MT</div>
+                <div class="sidebar-info">
+                    <h3>MediaTrack</h3>
+                    <small>v1.4.2 · Acervo físico</small>
+                </div>
+            </div>
+            
+            <!-- Menu de Navegação -->
+            <nav class="sidebar-menu">
+                <div class="menu-titulo">NAVEGAÇÃO</div>
+                
+                <a href="{% url 'dashboard' %}" class="menu-item {% if request.resolver_match.url_name == 'dashboard' %}ativo{% endif %}">
+                    <span class="menu-icone"><svg data-lucide="layout-dashboard"></svg></span>
+                    <span>Dashboard</span>
+                </a>
+                
+                <a href="{% url 'acervo:lista' %}" class="menu-item {% if request.resolver_match.app_names.0 == 'acervo' %}ativo{% endif %}">
+                    <span class="menu-icone"><svg data-lucide="archive"></svg></span>
+                    <span>Acervo</span>
+                    <span class="menu-contador" id="contador-acervo">0</span>
+                </a>
+                
+                <a href="{% url 'acervo:cadastrar' %}" class="menu-item">
+                    <span class="menu-icone"><svg data-lucide="plus-circle"></svg></span>
+                    <span>Cadastrar item</span>
+                </a>
+                
+                <a href="{% url 'codigo_barras' %}" class="menu-item {% if request.resolver_match.url_name == 'codigo_barras' %}ativo{% endif %}">
+                    <span class="menu-icone"><svg data-lucide="scan-barcode"></svg></span>
+                    <span>Código de barras</span>
+                </a>
+                
+                <a href="{% url 'movimentacoes:lista' %}" class="menu-item {% if request.resolver_match.app_names.0 == 'movimentacoes' %}ativo{% endif %}">
+                    <span class="menu-icone"><svg data-lucide="activity"></svg></span>
+                    <span>Movimentações</span>
+                </a>
+                
+                <a href="{% url 'categorias:lista' %}" class="menu-item {% if request.resolver_match.app_names.0 == 'categorias' %}ativo{% endif %}">
+                    <span class="menu-icone"><svg data-lucide="tag"></svg></span>
+                    <span>Categorias</span>
+                </a>
+                
+                <a href="{% url 'usuarios:lista' %}" class="menu-item {% if request.resolver_match.app_names.0 == 'usuarios' %}ativo{% endif %}">
+                    <span class="menu-icone"><svg data-lucide="users"></svg></span>
+                    <span>Usuários</span>
+                </a>
+                
+                <a href="{% url 'configuracoes' %}" class="menu-item {% if request.resolver_match.url_name == 'configuracoes' %}ativo{% endif %}">
+                    <span class="menu-icone"><svg data-lucide="settings"></svg></span>
+                    <span>Configurações</span>
+                </a>
+            </nav>
+            
+            <!-- Status e Usuário -->
+            <div class="sidebar-status">
+                <div class="status-item">
+                    <span class="status-indicador"></span>
+                    <span>Leitor conectado</span>
+                </div>
+                
+                <a href="{% url 'usuarios:logout' %}" class="usuario-bloco">
+                    <div class="usuario-avatar">{{ user.first_name|first|default:"U" }}</div>
+                    <div class="usuario-info">
+                        <span class="usuario-nome">{{ user.get_full_name|default:user.username }}</span>
+                        <span class="usuario-tipo">{% if user.perfil %}{{ user.perfil.get_tipo_display }}{% else %}Sem perfil{% endif %}</span>
+                    </div>
+                    <span class="usuario-seta">→</span>
+                </a>
+            </div>
+        </aside>
+        
+        <!-- MAIN CONTENT WRAPPER -->
+        <div class="main-content-wrapper">
+            <!-- HEADER -->
+            <header class="header">
+                <button class="menu-toggler" id="menu-toggler" aria-label="Abrir menu">
+                    <svg data-lucide="menu"></svg>
+                </button>
+                
+                <div class="header-titulo-area">
+                    <h1>{% block titulo_pagina %}Dashboard{% endblock %}</h1>
+                    <div class="header-subtitulo">
+                        <span class="header-descricao">{% block descricao_pagina %}Visão geral do acervo{% endblock %}</span>
+                        <span class="header-data" id="data-atual"></span>
+                    </div>
+                </div>
+                
+                <div class="header-direita">
+                    <div class="header-status">
+                        <span class="status-ponto"></span>
+                        <span>Sistema online</span>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- CONTEÚDO PRINCIPAL -->
+            <main class="conteudo-principal">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alerta alerta-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            {% block conteudo %}{% endblock %}
+        </main>
+            </main>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="{% static 'js/app.js' %}"></script>
+    {% block js_adicional %}{% endblock %}
+</body>
+</html>
