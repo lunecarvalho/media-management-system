@@ -10,6 +10,11 @@ on:
         description: Aplicar estados no Project 3
         type: boolean
         default: false
+      issue_number:
+        description: 'Somente esta Issue do MediaTrack; vazio para todas'
+        type: string
+        required: false
+        default: ''
 permissions:
   contents: read
   issues: read
@@ -33,10 +38,16 @@ jobs:
       - name: Inspecionar ou reconciliar
         env:
           PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PROJECT_AUTOMATION_ENABLED: ${{ vars.PROJECT_AUTOMATION_ENABLED }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
           APPLY: ${{ github.event_name != 'workflow_dispatch' || inputs.apply }}
         run: |
+          args=()
+          if [ -n "$ISSUE_NUMBER" ]; then
+            args+=(--issue-number "$ISSUE_NUMBER")
+          fi
           if [ "$APPLY" = "true" ]; then
-            python scripts/project_automation.py --apply
+            python scripts/project_automation.py --apply "${args[@]}"
           else
-            python scripts/project_automation.py
+            python scripts/project_automation.py "${args[@]}"
           fi

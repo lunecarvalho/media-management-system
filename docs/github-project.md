@@ -41,3 +41,54 @@ resolvidas. Reabertura e edição de vínculos são reconciliadas.
 Execuções serializadas, código apenas da branch padrão e Secrets nunca impressos.
 Itens existentes são reutilizados; addProjectV2ItemById opera por contentId.
 A reconciliação alcança todas as Issues do repositório, inclusive antigas.
+
+## Controles e dry-run revisados
+
+A escrita exige simultaneamente `apply=true` e a variável de repositório
+`PROJECT_AUTOMATION_ENABLED=true`. Se apply for true e a variável não for exatamente
+true, o script termina com erro antes de consultar ou modificar o Project.
+Com apply=false, continua somente leitura, independentemente da variável, e aceita
+o token com read:project. Não habilite escrita antes de revisar o novo dry-run.
+
+Na execução manual de **Project 3**, `issue_number` é opcional. Vazio analisa todas
+as Issues; um inteiro positivo seleciona somente aquela Issue do MediaTrack.
+Não aceita URL, nome de outro repositório ou expressão de shell. Números são locais
+ao repositório: 25 significa exclusivamente a Issue 25 do MediaTrack. Issue inexistente
+ou resposta de outro repositório interrompe a execução antes de qualquer escrita.
+O script pode consultar a lista completa para localizar a Issue, mas só propõe/aplica
+ações à selecionada. CLI equivalente somente de leitura:
+
+```text
+python scripts/project_automation.py --issue-number 25
+```
+
+O relatório mostra owner, número e URL retornados pelo Project, repositório permitido,
+campo Status, opções e IDs técnicos. Valida owner/número/URL antes de continuar.
+Para cada Issue, mostra estado aberta/fechada, Status atual, desejado e ação:
+nenhuma, adicionar ou atualizar. Ausente significa que a Issue não possui item no
+Project; sem Status significa que o item existe mas o campo não está preenchido.
+Não foram consultados novamente os itens reais durante esta alteração local.
+
+O Status atual é recuperado com fieldValueByName. Estado igual não gera mutation.
+A resposta de addProjectV2ItemById também é examinada: se uma automação nativa já
+criou o item e definiu o Status correto, não há atualização adicional. A API reutiliza
+o item por contentId, sem criar uma segunda tarefa. Execuções do workflow permanecem
+serializadas. Uma alteração manual simultânea entre leitura e escrita não tem garantia
+de compare-and-swap pela API; evite editar os mesmos cards durante a reconciliação.
+
+## Política de In Review
+
+Não criar, renomear ou remover opções do Project. Não mover automaticamente uma Issue
+para In Review. Se uma Issue aberta já estiver em In Review, preservar essa escolha
+manual mesmo sem PR ativa, com observação explícita no relatório. Issue fechada vai
+para Done, inclusive quando estava em In Review. Reaberta a partir de Done segue a
+política inicial: In Progress com PR ativa reconhecida; caso contrário Todo.
+
+## Próxima validação
+
+Enviar as alterações pelo procedimento manual do mantenedor e executar novamente
+apply=false, mantendo PROJECT_AUTOMATION_ENABLED=false e read:project. Conferir os
+itens ausentes e estados propostos; repetir o dry-run. Somente após revisão, preparar
+uma Issue temporária e usar issue_number para o teste controlado. Não executar escrita
+global como primeiro teste. Nenhuma mutação real foi realizada na validação local;
+os testes de escrita utilizam exclusivamente respostas simuladas.
