@@ -10,7 +10,7 @@ valores e os imprime antes de mutações; interrompe em caso de erro.
 ## Preferir automações nativas
 
 Em Project #3 > Workflows, revisar auto-add com filtro
-`repo:lunecarvalho/media-management-system is:issue`, item added -> Todo e
+`repo:lunecarvalho/media-management-system is:issue -label:project-ignore`, item added -> Todo e
 issue closed -> Done. PR merged -> Done nativo altera o item da PR, não necessariamente
 a Issue associada. Não adicionar PRs como segunda estrutura de tarefas.
 https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/using-the-built-in-automations
@@ -41,6 +41,32 @@ resolvidas. Reabertura e edição de vínculos são reconciliadas.
 Execuções serializadas, código apenas da branch padrão e Secrets nunca impressos.
 Itens existentes são reutilizados; addProjectV2ItemById opera por contentId.
 A reconciliação alcança todas as Issues do repositório, inclusive antigas.
+
+## Exclusão por project-ignore
+
+Issues com a label `project-ignore` são ignoradas antes de calcular ou escrever
+Status, abertas ou fechadas, presentes ou ausentes no Project. O script não adiciona,
+atualiza, remove nem readiciona esses itens. O log informa `ignorada: project-ignore`.
+A comparação do nome não diferencia maiúsculas/minúsculas e não aceita correspondência
+parcial. Todas as páginas de labels são consultadas quando necessário; falhas nessa
+leitura impedem escrita. O filtro issue_number continua válido: selecionar uma Issue
+ignorada resulta em nenhuma ação, não em erro de Issue inexistente.
+
+Eventos labeled/unlabeled também disparam reconciliação, respeitando os bloqueios
+existentes. Remover a label permite que a Issue volte ao fluxo normal. As regras de
+Todo, In Progress, In Review e Done das demais Issues permanecem iguais.
+
+**Configuração manual pendente no GitHub:** atualizar todos os Auto-add que possam
+atingir este repositório para usar `-label:project-ignore`, além da seleção exclusiva
+do MediaTrack e `is:issue`. O script não controla automações nativas. Regras nativas
+como Issue closed → Done ainda podem alterar um item ignorado que permaneça no Project:
+aplique exclusão por label se a regra oferecer esse filtro; caso contrário, desative
+a regra conflitante e deixe o script executar essa transição para Issues elegíveis.
+Nenhuma configuração remota foi alterada nesta implementação.
+
+Não aplicar labels/editar os mesmos itens simultaneamente a uma escrita em andamento:
+a API não oferece transação atômica entre consulta de labels e atualização do Project.
+Referência: https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/adding-items-automatically
 
 ## Controles e dry-run revisados
 

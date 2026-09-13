@@ -11,6 +11,7 @@ OWNER = 'lunecarvalho'
 PROJECT_NUMBER = 3
 PROJECT_URL = 'https://github.com/users/lunecarvalho/projects/3'
 REPOSITORY = 'lunecarvalho/media-management-system'
+IGNORE_LABEL = 'project-ignore'
 
 
 def graphql(query, **variables):
@@ -85,6 +86,17 @@ def desired_status(state, open_pr, current=None):
     return 'Done' if state == 'CLOSED' else ('In Progress' if open_pr else 'Todo')
 
 
+def is_ignored(issue):
+    labels = issue['labels']
+    nodes = labels['nodes']
+    if labels['pageInfo']['hasNextPage']:
+        # Não presumir ausência da label quando a primeira página estiver cheia.
+        nodes = list(pages('''query($id:ID!, $cursor:String) { node(id:$id) {
+          ... on Issue { labels(first:100,after:$cursor) { nodes { name }
+          pageInfo { hasNextPage endCursor } } } } }''', ['node', 'labels'], id=issue['id']))
+    return any(label['name'].casefold() == IGNORE_LABEL for label in nodes)
+
+
 def run(apply=False, issue_number=None):
     if os.environ.get('GITHUB_REPOSITORY', REPOSITORY) != REPOSITORY:
         raise RuntimeError('Repositório não autorizado.')
@@ -105,7 +117,8 @@ def run(apply=False, issue_number=None):
             raise RuntimeError('Mais de 100 referências em uma PR: operação interrompida.')
         open_issues.update(i['id'] for i in refs['nodes'] if i['repository']['nameWithOwner'] == REPOSITORY)
     issues = list(pages('''query($cursor:String) { repository(owner:"lunecarvalho",name:"media-management-system") {
-      issues(first:100,after:$cursor,states:[OPEN,CLOSED]) { nodes { id number state repository { nameWithOwner } }
+      issues(first:100,after:$cursor,states:[OPEN,CLOSED]) { nodes { id number state repository { nameWithOwner }
+        labels(first:100) { nodes { name } pageInfo { hasNextPage endCursor } } }
       pageInfo { hasNextPage endCursor } } } }''', ['repository', 'issues']))
     if any(i.get('repository', {}).get('nameWithOwner') != REPOSITORY for i in issues):
         raise RuntimeError('Issue de repositorio nao autorizado; nenhuma escrita iniciada.')
@@ -113,7 +126,12 @@ def run(apply=False, issue_number=None):
         issues = [i for i in issues if i['number'] == issue_number]
         if len(issues) != 1:
             raise RuntimeError('Issue inexistente neste repositorio; nenhuma escrita iniciada.')
+    # Concluir a leitura de labels antes de qualquer escrita; erros abortam o lote.
+    ignored = {issue['id'] for issue in issues if is_ignored(issue)}
     for issue in issues:
+        if issue['id'] in ignored:
+            print(f"Issue #{issue['number']} | ignorada: {IGNORE_LABEL} | acao: nenhuma")
+            continue
         item = items.get(issue['id'])
         current = item['status'] if item else None
         status = desired_status(issue['state'], issue['id'] in open_issues, current)
