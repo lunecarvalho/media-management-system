@@ -81,11 +81,15 @@ Os workflows estão separados: ci.yml valida, project-automation.yml reconcilia 
 
 ## Roadmap restante
 
-1. Executar CI remoto, incluindo PostgreSQL e build Docker.
+1. Reexecutar o CI após alterações: a matriz e o build anteriores já foram validados remotamente pelo mantenedor.
 2. Ensaiar migração de uma cópia dos dados reais e restauração de backup.
-3. Configurar e conferir Project #3 em modo de simulação.
+3. Preservar a automação do Project #3, já validada remotamente pelo mantenedor.
 4. Revisar custos e segurança AWS; criar homologação somente após autorização.
 5. Validar HTTPS, logs, health check e fluxos reais antes de autorizar produção.
 6. Futuramente: armazenamento de capas, outras fontes de metadados e avaliação formal de acessibilidade.
 
 Não há alegação de conformidade WCAG ou de atualização automática do dashboard em tempo real.
+
+Preparação de homologação: [OIDC, permissões, custos e rollback](docs/aws-operations.md).
+Nenhum recurso AWS é criado por comandos de validação local. O deploy permanece
+manual, condicionado ao CI, à variável de ativação e à aprovação do Environment.

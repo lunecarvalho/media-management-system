@@ -1,5 +1,9 @@
 # Docker e AWS — preparação sem implantação
 
+Roteiro complementar: [homologação, trust policy OIDC, permissões e rollback](aws-operations.md).
+O CI remoto anterior foi validado pelo mantenedor em SQLite, PostgreSQL e build.
+Isso não equivale à validação de RDS, proxy, OIDC ou aplicação no Elastic Beanstalk.
+
 Arquitetura: GitHub Actions → Elastic Beanstalk com plataforma Docker de um container → Gunicorn/Django → RDS PostgreSQL 16. Python 3.14 vem da imagem; não depende da oferta de Python nativo do Beanstalk. WhiteNoise entrega estáticos. S3 para capas/mídia fica como evolução; o bucket de artefatos do futuro CD tem outra finalidade.
 
 Nenhum recurso foi criado. Antes de criar infraestrutura, confira preços, créditos/Free Tier, disponibilidade regional, orçamento e alertas. Não há garantia de gratuidade. Render permanece apenas alternativa usando os mesmos requisitos de produção.
@@ -55,7 +59,7 @@ python manage.py migrate --noinput
 
 Não execute automaticamente em cada worker. A migração Produto/Exemplar não possui rollback automático; restauração e rollback da aplicação precisam ser planejados juntos. Interrompa se os dados violarem constraints. Crie o primeiro usuário administrador pelo procedimento operacional autorizado, sem senha no script.
 
-PostgreSQL não executado localmente; validação preparada no CI. Os testes de configuração/TLS não equivalem a conexão com RDS real.
+PostgreSQL não executado localmente; CI remoto anterior validado pelo mantenedor. Os testes de configuração/TLS não equivalem a conexão com RDS real.
 
 ## CI/CD preparado e bloqueado
 

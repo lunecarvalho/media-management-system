@@ -5,6 +5,19 @@ from django.test import SimpleTestCase
 
 
 class ProductionTests(SimpleTestCase):
+    def test_low_entropy_secret_and_partial_wildcard_rejected(self):
+        url = 'postgresql://user:pass@localhost/db?sslmode=verify-full&sslrootcert=system'
+        for overrides in ({'SECRET_KEY': 'a' * 64}, {'ALLOWED_HOSTS': '*.example.com'}, {'ALLOWED_HOSTS': ''}):
+            self.assertNotEqual(self.check_config(DATABASE_URL=url, **overrides).returncode, 0)
+
+    def test_tls_modes_and_missing_ca_rejected(self):
+        for query in ('sslmode=require', 'sslmode=disable', 'sslmode=verify-ca&sslrootcert=system', 'sslmode=verify-full'):
+            self.assertNotEqual(self.check_config(DATABASE_URL='postgresql://user:pass@localhost/db?' + query).returncode, 0)
+
+    def test_unbounded_connection_timeout_rejected(self):
+        for timeout in ('0', '-1', '31', 'invalid'):
+            url = 'postgresql://user:pass@localhost/db?sslmode=verify-full&sslrootcert=system&connect_timeout=' + timeout
+            self.assertNotEqual(self.check_config(DATABASE_URL=url).returncode, 0)
     def check_config(self, **overrides):
         env = dict(os.environ, DJANGO_SETTINGS_MODULE='config.production', DEBUG='False',
             SECRET_KEY='unit-test-only-' + 'x' * 60, DATABASE_URL='', DB_HOST='', ALLOWED_HOSTS='example.com',
