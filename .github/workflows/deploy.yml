@@ -20,8 +20,9 @@ jobs:
     uses: ./.github/workflows/ci.yml
   deploy:
     needs: validate
-    if: vars.AWS_DEPLOY_ENABLED == 'true' && inputs.confirm && inputs.database_ready && github.ref == 'refs/heads/main'
+    if: github.repository == 'lunecarvalho/media-management-system' && vars.AWS_DEPLOY_ENABLED == 'true' && inputs.confirm && inputs.database_ready && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     environment: aws-production
     permissions:
       contents: read
@@ -55,13 +56,26 @@ jobs:
         run: |
           curl --fail --silent --show-error --proto '=https' --tlsv1.2 "$RDS_CA_BUNDLE_URL" -o rds-ca.pem
           python scripts/build_bundle.py --rds-ca rds-ca.pem
+      - name: Validar imagem do pacote final com CA
+        run: |
+          mkdir bundle-final
+          python -m zipfile -e dist/mediatrack.zip bundle-final
+          docker build -t mediatrack-release bundle-final
+          docker run --rm mediatrack-release python -c "import ssl; ssl.create_default_context(cafile='/app/certs/rds-ca.pem')"
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: mediatrack-${{ github.run_id }}
+      - name: Conferir destino existente e registrar versão anterior
+        run: |
+          aws elasticbeanstalk describe-environments --application-name "$EB_APPLICATION" --environment-names "$EB_ENVIRONMENT" --no-include-deleted > "$RUNNER_TEMP/eb-before.json"
+          python scripts/validate_eb_environment.py "$RUNNER_TEMP/eb-before.json" --application "$EB_APPLICATION" --environment "$EB_ENVIRONMENT"
       - name: Implantar somente no ambiente existente
         run: |
           aws s3 cp dist/mediatrack.zip "s3://$EB_ARTIFACT_BUCKET/mediatrack/$VERSION.zip" --only-show-errors
           aws elasticbeanstalk create-application-version --application-name "$EB_APPLICATION" --version-label "$VERSION" --source-bundle "S3Bucket=$EB_ARTIFACT_BUCKET,S3Key=mediatrack/$VERSION.zip"
           aws elasticbeanstalk update-environment --environment-name "$EB_ENVIRONMENT" --version-label "$VERSION"
           aws elasticbeanstalk wait environment-updated --environment-names "$EB_ENVIRONMENT"
+          aws elasticbeanstalk describe-environments --application-name "$EB_APPLICATION" --environment-names "$EB_ENVIRONMENT" --no-include-deleted > "$RUNNER_TEMP/eb-after.json"
+          python scripts/validate_eb_environment.py "$RUNNER_TEMP/eb-after.json" --application "$EB_APPLICATION" --environment "$EB_ENVIRONMENT" --version "$VERSION"
