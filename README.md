@@ -1,6 +1,6 @@
 # MediaTrack
 
-Sistema Django para o acervo de CDs e DVDs de um sebo, desenvolvido no contexto do Projeto Integrador II da UNIVESP.
+Sistema Django para o acervo de CDs e DVDs de um sebo, desenvolvido como recurso para a disciplina de Projeto Integrador II da UNIVESP.
 
 ## Estado atual
 
