@@ -6,9 +6,21 @@ from decimal import Decimal
 from movimentacoes.models import Movimentacao
 from django.http import JsonResponse
 from django.db import connection, DatabaseError
+from django.views.decorators.http import require_safe
+from django.views.decorators.cache import never_cache
 
 
+@require_safe
+@never_cache
 def health(request):
+    """Liveness: o processo responde, independentemente do banco."""
+    return JsonResponse({'status': 'ok'})
+
+
+@require_safe
+@never_cache
+def readiness(request):
+    """Readiness: dependências críticas disponíveis, sem expor detalhes."""
     try:
         with connection.cursor() as cursor:
             cursor.execute('SELECT 1')

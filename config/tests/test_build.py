@@ -25,7 +25,10 @@ class BuildTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIn('text/css', response['Content-Type'])
                 self.assertIn('immutable', response['Cache-Control'])
-                response.close()
+                # O cliente fecha o stream sem encerrar a transação do TestCase.
+                self.assertTrue(b''.join(response.streaming_content))
+                from django.db import connection
+                self.assertFalse(connection.closed_in_transaction)
 
     def test_bundle_excludes_secrets_and_development_compose(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -38,13 +41,45 @@ class BuildTests(TestCase):
             self.assertFalse(any(n.endswith('.sqlite3') or '/.env' in n or n == '.env' for n in names))
 
     def test_health_does_not_require_authentication(self):
-        self.assertEqual(self.client.get('/health/').json(), {'status': 'ok'})
+        with self.assertNumQueries(0):
+            response = self.client.get('/health/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'status': 'ok'})
 
     @patch('config.views.connection.cursor', side_effect=DatabaseError('sensitive'))
-    def test_health_does_not_expose_database_errors(self, cursor):
-        response = self.client.get('/health/')
+    def test_readiness_does_not_expose_database_errors(self, cursor):
+        response = self.client.get('/readiness/')
         self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json(), {'status': 'unavailable'})
         self.assertNotContains(response, 'sensitive', status_code=503)
+
+    def test_readiness_queries_database_without_authentication(self):
+        with self.assertNumQueries(1):
+            response = self.client.get('/readiness/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'status': 'ok'})
+
+    @patch('config.views.connection.cursor', side_effect=DatabaseError('sensitive'))
+    def test_health_survives_database_failure_without_opening_cursor(self, cursor):
+        response = self.client.get('/health/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'status': 'ok'})
+        cursor.assert_not_called()
+
+    def test_probes_are_read_only_and_not_cached(self):
+        for url in ('/health/', '/readiness/'):
+            with self.subTest(url=url):
+                self.assertEqual(self.client.post(url).status_code, 405)
+                response = self.client.get(url)
+                self.assertIn('no-store', response['Cache-Control'])
+                self.assertEqual(self.client.head(url).status_code, 200)
+
+    @override_settings(SECURE_SSL_REDIRECT=True, SECURE_REDIRECT_EXEMPT=[r'^health/$'])
+    def test_only_liveness_is_exempt_from_https(self):
+        self.assertEqual(self.client.get('/health/').status_code, 200)
+        self.assertEqual(self.client.get('/readiness/').status_code, 301)
+        self.assertEqual(self.client.get('/readiness/', secure=True).status_code, 200)
+        self.assertEqual(self.client.get('/health/', HTTP_HOST='untrusted.invalid').status_code, 400)
 
     def test_bundle_is_reproducible(self):
         with tempfile.TemporaryDirectory() as directory:

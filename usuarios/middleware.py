@@ -9,7 +9,7 @@ class AcessoInternoMiddleware(MiddlewareMixin):
         match = request.resolver_match
         if match.namespace == 'api':
             return None
-        if match.view_name in {'usuarios:login', 'usuarios:logout', 'health', 'admin:login', 'admin:logout'}:
+        if match.view_name in {'usuarios:login', 'usuarios:logout', 'health', 'readiness', 'admin:login', 'admin:logout'}:
             return None
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path())
