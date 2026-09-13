@@ -2,14 +2,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.views.generic import TemplateView
 
 from . import views
 
 urlpatterns = [
+    path('health/', views.health, name='health'),
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
-    path('', TemplateView.as_view(template_name='dashboard-fixed.html'), name='dashboard'),
+    path('', views.dashboard, name='dashboard'),
     path('codigo-barras/', views.codigo_barras, name='codigo_barras'),
     path('configuracoes/', views.configuracoes, name='configuracoes'),
     path('acervo/', include('acervo.urls')),

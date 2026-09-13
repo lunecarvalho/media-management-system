@@ -1,15 +1,13 @@
-version: '3.8'
-
 services:
   db:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: mediatrack_db
     environment:
       POSTGRES_DB: ${DB_NAME:-mediatrack}
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,6 +18,7 @@ services:
 
   web:
     build: .
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
     container_name: mediatrack_web
     command: >
       sh -c "python manage.py migrate &&
@@ -30,14 +29,16 @@ services:
     ports:
       - "8000:8000"
     environment:
-      SECRET_KEY: ${SECRET_KEY:-dev-key-change-in-production-change-this-now}
-      DEBUG: ${DEBUG:-True}
+      SECRET_KEY: django-insecure-docker-development-only
+      DJANGO_SETTINGS_MODULE: config.settings
+      DATABASE_URL: ''
+      DEBUG: 'True'
       DB_ENGINE: django.db.backends.postgresql
       DB_NAME: ${DB_NAME:-mediatrack}
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_HOST: db
-      DB_PORT: ${DB_PORT:-5432}
+      DB_PORT: '5432'
     depends_on:
       db:
         condition: service_healthy

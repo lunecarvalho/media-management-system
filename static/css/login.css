@@ -1,0 +1,53 @@
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 380px;
+            padding: 32px;
+        }
+
+        .login-marca {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .login-logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background-color: var(--cor-primaria);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--cor-fundo);
+            flex-shrink: 0;
+        }
+
+        .login-marca h1 {
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .login-marca small {
+            color: var(--cor-texto-secundario);
+        }
+
+        .login-form label {
+            margin-top: 16px;
+        }
+
+        .login-form button {
+            width: 100%;
+            margin-top: 24px;
+        }
+    

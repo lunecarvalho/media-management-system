@@ -11,8 +11,8 @@
 <div class="dashboard-container pagina-simples">
     <section class="card">
         <h2>Excluir "{{ item.titulo }}"?</h2>
-        <p class="texto-secundario">Esta ação remove o item e seu histórico de movimentações permanentemente.</p>
-        <form method="post" class="linha-formulario" style="border: 0; padding-top: 20px;">
+        <p class="texto-secundario">Esta ação retira o exemplar do estoque ativo. O registro e seu histórico serão preservados.</p>
+        <form method="post" class="linha-formulario acoes-sem-borda mt-lg">
             {% csrf_token %}
             <a href="{% url 'acervo:detalhe' item.pk %}" class="btn btn-secundaria">Cancelar</a>
             <button type="submit" class="btn btn-aviso">Confirmar exclusão</button>

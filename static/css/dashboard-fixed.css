@@ -286,96 +286,6 @@
   overflow-x: auto;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-thead {
-  background-color: rgba(0, 168, 232, 0.05);
-}
-
-thead th {
-  padding: 12px 16px;
-  text-align: left;
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--cor-texto-secundario);
-  border-bottom: 1px solid var(--cor-borda);
-}
-
-tbody tr {
-  border-bottom: 1px solid var(--cor-borda);
-  transition: background-color 0.2s ease;
-}
-
-tbody tr:hover {
-  background-color: rgba(0, 168, 232, 0.05);
-}
-
-tbody td {
-  padding: 14px 16px;
-  font-size: 0.9rem;
-  color: var(--cor-texto-principal);
-}
-
-/* BADGES */
-.badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.badge-cd {
-  background-color: rgba(155, 89, 182, 0.2);
-  color: #9b59b6;
-}
-
-.badge-dvd {
-  background-color: rgba(231, 76, 60, 0.2);
-  color: #e74c3c;
-}
-
-.badge-disponivel {
-  background-color: rgba(0, 208, 132, 0.2);
-  color: var(--cor-sucesso);
-}
-
-.badge-vendido {
-  background-color: rgba(255, 165, 0, 0.2);
-  color: var(--cor-aviso);
-}
-
-.badge-reservado {
-  background-color: rgba(52, 152, 219, 0.2);
-  color: #3498db;
-}
-
-.badge-venda {
-  background-color: rgba(0, 208, 132, 0.2);
-  color: var(--cor-sucesso);
-}
-
-.badge-cadastro {
-  background-color: rgba(0, 168, 232, 0.2);
-  color: var(--cor-primaria);
-}
-
-.badge-edicao {
-  background-color: rgba(230, 126, 34, 0.2);
-  color: #e67e22;
-}
-
-.badge-reserva {
-  background-color: rgba(52, 152, 219, 0.2);
-  color: #3498db;
-}
-
 /* INVENTORY AND MANAGEMENT PAGES */
 .filtros-acervo,
 .linha-formulario {
@@ -667,3 +577,5 @@ tbody td {
     font-size: 0.85rem;
   }
 }
+
+.acoes-sem-borda { border: 0; padding: 0; }

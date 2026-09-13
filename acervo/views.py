@@ -1,9 +1,12 @@
+from config.pagination import paginar
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 
-from movimentacoes.models import Movimentacao
+from django.core.exceptions import ValidationError
+from .services import excluir_exemplar
 
 from .forms import ItemForm
 from .models import Categoria, Item
@@ -14,23 +17,25 @@ def lista(request):
     tipo = request.GET.get('tipo', '')
     status = request.GET.get('status', '')
 
-    itens = Item.objects.select_related('categoria').all()
+    itens = Item.objects.select_related('produto__categoria').all()
     if consulta:
         itens = itens.filter(
-            Q(titulo__icontains=consulta)
-            | Q(artista_diretor__icontains=consulta)
-            | Q(codigo_barras__icontains=consulta)
+            Q(produto__titulo__icontains=consulta)
+            | Q(produto__artista_diretor__icontains=consulta)
+            | Q(codigo_interno__icontains=consulta)
         )
     if tipo in dict(Item.TIPO_CHOICES):
-        itens = itens.filter(tipo=tipo)
+        itens = itens.filter(produto__tipo=tipo)
     if status in dict(Item.STATUS_CHOICES):
         itens = itens.filter(status=status)
+
+    itens = paginar(request, itens)
 
     return render(
         request,
         'acervo/lista.html',
         {
-            'itens': itens,
+            'itens': itens, 'page_obj': itens,
             'consulta': consulta,
             'tipo_atual': tipo,
             'status_atual': status,
@@ -41,21 +46,17 @@ def lista(request):
 @login_required
 def cadastrar(request):
     if request.method == 'POST':
-        form = ItemForm(request.POST)
+        form = ItemForm(request.POST, usuario=request.user)
         if form.is_valid():
-            item = form.save(commit=False)
-            item.usuario_responsavel = request.user
-            item.save()
-            Movimentacao.objects.create(
-                item=item,
-                tipo='cadastro',
-                usuario=request.user,
-                detalhes=f'Item cadastrado por {request.user.username}.',
-            )
+            try:
+                item = form.save()
+            except (ValidationError, IntegrityError) as exc:
+                form.add_error(None, 'Dados invalidos ou conflito. Confira os campos e recarregue se necessario.')
+                return render(request, 'acervo/cadastrar.html', {'form': form})
             messages.success(request, f'{item.titulo} foi adicionado ao acervo.')
             return redirect('acervo:lista')
     else:
-        form = ItemForm()
+        form = ItemForm(initial={'produto': request.GET.get('produto')})
 
     return render(
         request,
@@ -65,7 +66,7 @@ def cadastrar(request):
 
 
 def detalhe(request, pk):
-    item = get_object_or_404(Item.objects.select_related('categoria'), pk=pk)
+    item = get_object_or_404(Item.objects.select_related('produto__categoria'), pk=pk)
     movimentacoes = item.movimentacoes.select_related('usuario').all()
     return render(request, 'acervo/detalhe.html', {'item': item, 'movimentacoes': movimentacoes})
 
@@ -74,15 +75,13 @@ def detalhe(request, pk):
 def editar(request, pk):
     item = get_object_or_404(Item, pk=pk)
     if request.method == 'POST':
-        form = ItemForm(request.POST, instance=item)
+        form = ItemForm(request.POST, instance=item, usuario=request.user)
         if form.is_valid():
-            form.save()
-            Movimentacao.objects.create(
-                item=item,
-                tipo='edicao',
-                usuario=request.user,
-                detalhes=f'Item editado por {request.user.username}.',
-            )
+            try:
+                form.save()
+            except (ValidationError, IntegrityError):
+                form.add_error(None, 'Dados invalidos ou conflito. Recarregue e confira os campos.')
+                return render(request, 'acervo/editar.html', {'form': form, 'item': item})
             messages.success(request, f'{item.titulo} foi atualizado.')
             return redirect('acervo:detalhe', pk=item.pk)
     else:
@@ -96,7 +95,11 @@ def excluir(request, pk):
     item = get_object_or_404(Item, pk=pk)
     if request.method == 'POST':
         titulo = item.titulo
-        item.delete()
+        try:
+            excluir_exemplar(item, request.user)
+        except ValidationError as exc:
+            messages.error(request, str(exc))
+            return redirect('acervo:detalhe', pk=item.pk)
         messages.success(request, f'{titulo} foi removido do acervo.')
         return redirect('acervo:lista')
 

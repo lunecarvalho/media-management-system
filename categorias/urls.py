@@ -6,4 +6,6 @@ app_name = 'categorias'
 
 urlpatterns = [
     path('', views.lista, name='lista'),
+    path('<int:pk>/editar/', views.editar, name='editar'),
+    path('<int:pk>/excluir/', views.excluir, name='excluir'),
 ]

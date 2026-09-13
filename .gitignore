@@ -56,3 +56,15 @@ docker-compose.override.yml
 .coverage
 htmlcov/
 *.cover
+
+# Catálogos externos e backups locais
+/datasets/
+/backups/
+movies_metadata.csv
+credits.csv
+ratings.csv
+/certs/
+.aws/
+*.key
+*.p12
+*.pfx

@@ -16,7 +16,8 @@
                 <h2>{{ item.titulo }}</h2>
                 <p class="texto-secundario">{{ item.artista_diretor }}{% if item.ano %} · {{ item.ano }}{% endif %}</p>
             </div>
-            <div class="linha-formulario" style="border: 0; padding: 0;">
+            <div class="linha-formulario acoes-sem-borda">
+                <a href="{% url 'acervo:metadados' %}?produto={{ item.produto_id }}" class="btn btn-secundaria">Pesquisar metadados</a>
                 <a href="{% url 'acervo:editar' item.pk %}" class="btn btn-secundaria">Editar</a>
                 <a href="{% url 'acervo:excluir' item.pk %}" class="btn btn-aviso">Excluir</a>
             </div>
@@ -27,14 +28,14 @@
             <div><dt>Categoria</dt><dd>{{ item.categoria.nome }}</dd></div>
             <div><dt>Gravadora/Distribuidora</dt><dd>{{ item.gravadora_distribuidora|default:"Não informada" }}</dd></div>
             <div><dt>Estado de conservação</dt><dd>{{ item.get_estado_conservacao_display }}</dd></div>
-            <div><dt>Preço</dt><dd>{% if item.preco %}R$ {{ item.preco }}{% else %}Não informado{% endif %}</dd></div>
+            <div><dt>Preço</dt><dd>{% if item.preco != None %}R$ {{ item.preco|floatformat:2 }}{% else %}Não informado{% endif %}</dd></div>
             <div><dt>Localização</dt><dd>{{ item.localizacao|default:"Não informada" }}</dd></div>
             <div><dt>Status</dt><dd><span class="badge badge-{{ item.status }}">{{ item.get_status_display }}</span></dd></div>
             <div><dt>Cadastrado em</dt><dd>{{ item.data_cadastro|date:"d/m/Y H:i" }}</dd></div>
         </dl>
 
         {% if item.descricao %}
-        <p class="texto-secundario" style="margin-top: 20px;">{{ item.descricao }}</p>
+        <p class="texto-secundario mt-lg">{{ item.descricao }}</p>
         {% endif %}
     </section>
 

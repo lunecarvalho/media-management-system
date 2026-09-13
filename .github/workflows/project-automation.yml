@@ -1,0 +1,42 @@
+name: Project 3
+on:
+  issues:
+    types: [opened, reopened, closed]
+  pull_request_target:
+    types: [opened, edited, reopened, closed, synchronize]
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Aplicar estados no Project 3
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+concurrency:
+  group: project-3
+  cancel-in-progress: false
+jobs:
+  reconcile:
+    if: github.repository == 'lunecarvalho/media-management-system' && (github.event_name == 'workflow_dispatch' || vars.PROJECT_AUTOMATION_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      # Nunca executar código do head da PR com credencial do Project.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - name: Inspecionar ou reconciliar
+        env:
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          APPLY: ${{ github.event_name != 'workflow_dispatch' || inputs.apply }}
+        run: |
+          if [ "$APPLY" = "true" ]; then
+            python scripts/project_automation.py --apply
+          else
+            python scripts/project_automation.py
+          fi

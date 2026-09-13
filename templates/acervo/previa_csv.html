@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block titulo_pagina %}Prévia da importação{% endblock %}
+{% block conteudo %}
+{% if erro %}<p class="alerta alerta-erro" role="alert">{{ erro }}</p>{% endif %}
+{% if batch.confirmado %}
+<p class="alerta alerta-sucesso">Importação concluída: {{ batch.resultado.importado }} importados; {{ batch.resultado.ignorado }} ignorados. Esta confirmação não será repetida.</p>
+{% else %}
+<p>Novos: {{ resumo.novo }} · Existentes idênticos: {{ resumo.ignorado }} · Inválidos: {{ resumo.invalido }}</p>
+{% endif %}
+<div class="tabela-container"><table><thead><tr><th>Linha</th><th>Código</th><th>Situação</th><th>Erro</th></tr></thead><tbody>
+{% for row in rows %}<tr><td>{{ row.linha }}</td><td>{{ row.dados.codigo_interno }}</td><td>{{ row.situacao }}</td><td>{{ row.erro }}</td></tr>{% endfor %}
+</tbody></table></div>
+{% if not batch.confirmado and not resumo.invalido %}<form method="post">{% csrf_token %}<button class="btn btn-primaria">Confirmar importação</button></form>{% endif %}
+<a href="{% url 'acervo:importar_csv' %}">Enviar outro arquivo</a>
+{% endblock %}

@@ -13,6 +13,7 @@
         <h2>Nova categoria</h2>
         <form method="post" class="formulario-empilhado">
             {% csrf_token %}
+            {{ form.errors }}
             <div><label for="nome">Nome</label><input id="nome" name="nome" required maxlength="100" placeholder="Ex.: Jazz"></div>
             <div><label for="descricao">Descrição</label><textarea id="descricao" name="descricao" rows="4" placeholder="Descrição opcional"></textarea></div>
             <button type="submit" class="btn btn-primaria">Adicionar categoria</button>
@@ -25,7 +26,7 @@
                 <thead><tr><th>Categoria</th><th>Descrição</th><th>Itens</th></tr></thead>
                 <tbody>
                     {% for categoria in categorias %}
-                    <tr><td><strong>{{ categoria.nome }}</strong></td><td>{{ categoria.descricao|default:"-" }}</td><td>{{ categoria.total_itens }}</td></tr>
+                    <tr><td><strong>{{ categoria.nome }}</strong><br><a href="{% url 'categorias:editar' categoria.pk %}">Editar</a> · <a href="{% url 'categorias:excluir' categoria.pk %}">Excluir</a></td><td>{{ categoria.descricao|default:"-" }}</td><td>{{ categoria.total_itens }}</td></tr>
                     {% empty %}
                     <tr><td colspan="3" class="texto-centro texto-secundario">Nenhuma categoria cadastrada.</td></tr>
                     {% endfor %}
@@ -34,4 +35,5 @@
         </div>
     </section>
 </div>
+{% include 'paginacao.html' %}
 {% endblock %}

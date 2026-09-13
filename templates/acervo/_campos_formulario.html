@@ -5,3 +5,9 @@
     {% for error in field.errors %}<span class="erro-campo">{{ error }}</span>{% endfor %}
 </div>
 {% endfor %}
+{% if not form.instance.pk %}
+<fieldset class="campo-largo">
+    <legend>Novo produto (preencha somente se não selecionou um existente)</legend>
+    {{ form.product_form.as_p }}
+</fieldset>
+{% endif %}

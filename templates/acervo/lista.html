@@ -15,16 +15,17 @@
                 <h2 class="tabela-titulo">Itens do acervo</h2>
             </div>
             <a href="{% url 'acervo:cadastrar' %}" class="btn btn-primaria">Cadastrar item</a>
+            <a href="{% url 'acervo:importar_csv' %}" class="btn btn-secundaria">Importar CSV</a>
         </div>
 
         <form method="get" class="filtros-acervo">
-            <input type="search" name="q" value="{{ consulta }}" placeholder="Buscar por título, artista ou código">
-            <select name="tipo">
+            <input type="search" aria-label="Buscar no acervo" name="q" value="{{ consulta }}" placeholder="Buscar por título, artista ou código">
+            <select aria-label="Tipo de midia" name="tipo">
                 <option value="">Todos os tipos</option>
                 <option value="CD" {% if tipo_atual == 'CD' %}selected{% endif %}>CD</option>
                 <option value="DVD" {% if tipo_atual == 'DVD' %}selected{% endif %}>DVD</option>
             </select>
-            <select name="status">
+            <select aria-label="Status" name="status">
                 <option value="">Todos os status</option>
                 <option value="disponivel" {% if status_atual == 'disponivel' %}selected{% endif %}>Disponível</option>
                 <option value="reservado" {% if status_atual == 'reservado' %}selected{% endif %}>Reservado</option>
@@ -70,4 +71,5 @@
         </div>
     </div>
 </div>
+{% include 'paginacao.html' %}
 {% endblock %}

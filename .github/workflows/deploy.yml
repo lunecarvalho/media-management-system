@@ -1,0 +1,67 @@
+name: AWS deployment (manual, disabled by default)
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Autorizar deploy no ambiente AWS previamente configurado'
+        type: boolean
+        default: false
+      database_ready:
+        description: 'Backup verificado e migrações aplicadas em janela controlada'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: aws-production
+  cancel-in-progress: false
+jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+  deploy:
+    needs: validate
+    if: vars.AWS_DEPLOY_ENABLED == 'true' && inputs.confirm && inputs.database_ready && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: aws-production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+      EB_APPLICATION: ${{ vars.EB_APPLICATION }}
+      EB_ENVIRONMENT: ${{ vars.EB_ENVIRONMENT }}
+      EB_ARTIFACT_BUCKET: ${{ vars.EB_ARTIFACT_BUCKET }}
+      RDS_CA_BUNDLE_URL: ${{ vars.RDS_CA_BUNDLE_URL }}
+      VERSION: mediatrack-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      - name: Conferir configuração explícita
+        run: |
+          for name in AWS_REGION AWS_ROLE_ARN EB_APPLICATION EB_ENVIRONMENT EB_ARTIFACT_BUCKET RDS_CA_BUNDLE_URL; do
+            test -n "${!name}" || { echo "Variável ausente: $name"; exit 1; }
+          done
+          case "$RDS_CA_BUNDLE_URL" in
+            https://truststore.pki.rds.amazonaws.com/*) ;;
+            *) echo "Use o endpoint HTTPS oficial de certificados RDS."; exit 1 ;;
+          esac
+      - name: Incluir CA pública no pacote
+        run: |
+          curl --fail --silent --show-error --proto '=https' --tlsv1.2 "$RDS_CA_BUNDLE_URL" -o rds-ca.pem
+          python scripts/build_bundle.py --rds-ca rds-ca.pem
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Implantar somente no ambiente existente
+        run: |
+          aws s3 cp dist/mediatrack.zip "s3://$EB_ARTIFACT_BUCKET/mediatrack/$VERSION.zip" --only-show-errors
+          aws elasticbeanstalk create-application-version --application-name "$EB_APPLICATION" --version-label "$VERSION" --source-bundle "S3Bucket=$EB_ARTIFACT_BUCKET,S3Key=mediatrack/$VERSION.zip"
+          aws elasticbeanstalk update-environment --environment-name "$EB_ENVIRONMENT" --version-label "$VERSION"
+          aws elasticbeanstalk wait environment-updated --environment-names "$EB_ENVIRONMENT"

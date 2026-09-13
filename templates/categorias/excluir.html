@@ -1,0 +1,3 @@
+{% extends 'base.html' %}
+{% block titulo_pagina %}Excluir categoria{% endblock %}
+{% block conteudo %}<section class="card"><p>Remover {{ categoria.nome }}?</p>{% if erro %}<p role="alert">{{ erro }}</p>{% endif %}<form method="post">{% csrf_token %}<button class="btn btn-aviso">Confirmar</button></form></section>{% endblock %}

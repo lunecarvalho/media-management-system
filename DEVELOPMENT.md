@@ -1,246 +1,91 @@
-# MediaTrack - Acervo Físico
+# Desenvolvimento do MediaTrack
 
-Sistema web de gerenciamento de acervo de CDs e DVDs para sebos. Desenvolvido com Django, PostgreSQL, HTML5, CSS3 e JavaScript vanilla.
+## Instalação local
 
-## Características
+Utilize Python 3.14, conforme .python-version. As dependências diretas estão fixadas em requirements.txt.
 
-- ✅ Interface moderna e profissional
-- ✅ Gerenciamento completo de itens (CDs e DVDs)
-- ✅ Dashboard com estatísticas em tempo real
-- ✅ Integração com leitor de código de barras USB
-- ✅ Histórico de movimentações
-- ✅ Categorização de itens
-- ✅ Gerenciamento de usuários
-- ✅ API REST com Django REST Framework
-- ✅ Containerizado com Docker
-- ✅ Suporte a PostgreSQL
-- ✅ Acessibilidade WCAG
-
-## Stack Tecnológico
-
-### Backend
-- Python 3.11+
-- Django 4.2
-- Django REST Framework
-- PostgreSQL 15
-
-### Frontend
-- HTML5
-- CSS3
-- JavaScript Vanilla
-- Django Templates
-
-### DevOps
-- Docker & Docker Compose
-- Git
-- GitHub Actions (CI/CD)
-
-## Instalação Local
-
-### Pré-requisitos
-
-- Python 3.11+
-- PostgreSQL 15+ (ou usar Docker Compose)
-- Git
-- pip ou virtualenv
-
-### 1. Clonar repositório
-
-```bash
-git clone https://github.com/lunecarvalho/media-management-system
-cd media-management-system
-```
-
-### 2. Criar ambiente virtual
-
-```bash
+```powershell
 python -m venv venv
-
-# No Windows
-venv\Scripts\activate
-
-# No Linux/Mac
-source venv/bin/activate
+.\venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
 ```
 
-### 3. Instalar dependências
+No Linux, ative com `source venv/bin/activate` e copie com `cp .env.example .env`.
+Edite .env somente localmente. Para SQLite, deixe DATABASE_URL e DB_HOST ausentes/vazios e utilize DEBUG=True em desenvolvimento. Variáveis do processo prevalecem sobre .env: um DEBUG inválido exportado pelo terminal causa erro explícito. Nunca use a chave de exemplo em produção.
 
-```bash
-pip install -r requirements.txt
-```
+Em banco novo:
 
-### 4. Configurar variáveis de ambiente
-
-```bash
-# Copiar arquivo de exemplo
-cp .env.example .env
-
-# Editar .env com suas configurações locais
-# Importante: Mude SECRET_KEY e as credenciais do banco
-```
-
-O arquivo `.env` nunca deve ser commitado (já está no `.gitignore`). Use `.env.example` apenas como referência de quais variáveis existem.
-
-**Variáveis de ambiente disponíveis:**
-
-| Variável | Obrigatória | Descrição |
-|---|---|---|
-| `SECRET_KEY` | Sim (produção) | Chave secreta do Django. Gere uma nova e nunca reutilize a de exemplo. |
-| `DEBUG` | Não (padrão `True`) | Deve ser `False` em produção. |
-| `ALLOWED_HOSTS` | Sim (produção) | Domínios separados por vírgula. |
-| `DATABASE_URL` | Não | URL completa do Postgres (Render/Supabase). Tem prioridade sobre `DB_*`. |
-| `DB_ENGINE`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | Não | Alternativa ao `DATABASE_URL` (ex: Postgres local via Docker). Sem essas variáveis, o projeto usa SQLite automaticamente. |
-| `CORS_ALLOWED_ORIGINS` | Não | Origens permitidas, separadas por vírgula. |
-| `CSRF_TRUSTED_ORIGINS` | Sim (produção, se atrás de proxy/domínio próprio) | Domínios confiáveis para POST, separados por vírgula. |
-| `SECURE_SSL_REDIRECT`, `SECURE_HSTS_SECONDS` | Não | Ajustes finos de segurança quando `DEBUG=False`. |
-| `MUSICBRAINZ_API_URL`, `TMDB_API_KEY` | Não | Integrações futuras com APIs externas. |
-
-### 5. Executar migrações do banco
-
-```bash
+```text
+python manage.py check
 python manage.py migrate
-```
-
-### 6. Criar superusuário (Admin)
-
-```bash
 python manage.py createsuperuser
-```
-
-### 7. Coletar arquivos estáticos (opcional em desenvolvimento)
-
-```bash
-python manage.py collectstatic
-```
-
-### 8. Executar servidor de desenvolvimento
-
-```bash
 python manage.py runserver
 ```
 
-Acesse: http://localhost:8000/
+Acesse localhost:8000 e /admin/. Em banco existente, faça backup e siga a estratégia de migração em [arquitetura](docs/architecture.md) antes de migrate. Não execute comandos de desenvolvimento contra produção.
 
-Admin: http://localhost:8000/admin/
+## Testes
 
-## Usando Docker
-
-### 1. Requisitos
-
-- Docker
-- Docker Compose
-
-### 2. Executar com Docker Compose
-
-```bash
-docker-compose up -d
+```text
+python -m pip check
+python manage.py check --settings=config.test_settings
+python manage.py makemigrations --check --dry-run --settings=config.test_settings
+python manage.py test --noinput --settings=config.test_settings
+python manage.py collectstatic --noinput --settings=config.static_settings
+python scripts/build_bundle.py
 ```
 
-Isso iniciará:
-- PostgreSQL na porta 5432
-- Django na porta 8000
+config.test_settings isola SQLite em memória, desativa o redirecionamento HTTPS apenas nos testes e usa hash rápido apenas para testes. A aplicação de produção não usa essas configurações.
 
-O Django realizará automaticamente:
-- Migrações do banco
-- Coleta de arquivos estáticos
+Para PostgreSQL, configure TEST_DATABASE_URL apontando para um banco exclusivamente de testes, com usuário autorizado a criar/remover bancos de teste, e execute a mesma suíte. Não use a URL de produção. O CI executa a matriz SQLite/PostgreSQL 16. O teste de preservação de dados legados usa um subprocesso SQLite independente; isso não substitui ensaiar a migração do banco real em uma cópia PostgreSQL.
 
-### 3. Acessar a aplicação
+Para desenvolvimento com PostgreSQL, DATABASE_URL tem prioridade sobre DB_HOST/DB_NAME/DB_USER/DB_PASSWORD/DB_PORT. Credenciais com caracteres especiais devem ser codificadas na URL. O parser é dj-database-url e o driver é psycopg 3.
 
-- Frontend: http://localhost:8000/
-- Admin: http://localhost:8000/admin/
+## Docker
 
-### 4. Parar os containers
-
-```bash
-docker-compose down
+```text
+docker build -t mediatrack .
+docker compose up --build
 ```
 
-## Deploy no Render
+O Compose padrão é exclusivamente de desenvolvimento: PostgreSQL 16, volume local e runserver. Executa migrações ao iniciar, portanto use somente banco de desenvolvimento. No Linux, ajuste LOCAL_UID e LOCAL_GID para permitir escrita no diretório montado. Não remova o volume para resolver falhas sem preservar seus dados.
 
-O projeto está pronto para rodar no Render com PostgreSQL (ex: Supabase) como banco de dados. Nenhuma credencial de produção deve ser colocada no repositório — configure-as diretamente no painel do Render, em **Environment**:
+A imagem padrão usa Gunicorn como usuário sem privilégios. O Compose de produção é separado e exige configuração explícita: consulte [AWS](docs/aws.md). Docker não foi executado localmente nesta retomada.
 
-| Variável | Valor esperado |
-|---|---|
-| `SECRET_KEY` | Chave secreta gerada especificamente para produção (nunca reutilize a de desenvolvimento). |
-| `DEBUG` | `False` |
-| `ALLOWED_HOSTS` | Domínio do serviço no Render (ex: `mediatrack.onrender.com`). |
-| `DATABASE_URL` | URL de conexão do Postgres/Supabase, fornecida pelo próprio serviço de banco. |
-| `CSRF_TRUSTED_ORIGINS` | `https://` + domínio do serviço no Render. |
-| `CORS_ALLOWED_ORIGINS` | Domínios do frontend que podem consumir a API, se aplicável. |
-| `MUSICBRAINZ_API_URL`, `TMDB_API_KEY` | Somente se as integrações externas forem utilizadas. |
+## Variáveis
 
-Comando de build sugerido: `pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate`.
-Comando de start sugerido: `gunicorn config.wsgi:application --bind 0.0.0.0:$PORT`.
+| Nome | Uso |
+| --- | --- |
+| DJANGO_SETTINGS_MODULE | config.settings local; config.production na imagem |
+| DEBUG, SECRET_KEY, ALLOWED_HOSTS | Configuração básica; produção exige ambiente explícito |
+| DATABASE_URL | Conexão PostgreSQL; produção exige verify-full e CA |
+| DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT, DB_ENGINE | Alternativa somente local |
+| TEST_DATABASE_URL | Banco isolado para executar testes PostgreSQL |
+| CSRF_TRUSTED_ORIGINS | Origens confiáveis, somente HTTPS em produção |
+| CORS_ALLOWED_ORIGINS | Vazio por padrão; habilitar somente se necessário |
+| TRUST_PROXY_HEADERS | Somente atrás de proxy controlado |
+| SECURE_SSL_REDIRECT, SECURE_HSTS_SECONDS | HTTPS; produção força redirecionamento |
+| MUSICBRAINZ_USER_AGENT | Identificação real e contato para o serviço |
+| MOVIES_DATASET_PATH | Caminho opcional do catálogo auxiliar |
+| LOCAL_UID, LOCAL_GID | Usuário do Compose de desenvolvimento |
+| RDS_CA_PATH | Certificado público montado no Compose de produção |
 
-## Estrutura do Projeto
+## Organização e manutenção
 
-```
-mediatrack/
-├── config/                 # Configurações do Django
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
-├── acervo/                 # App de gerenciamento de itens
-│   ├── models.py
-│   ├── views.py
-│   └── admin.py
-├── movimentacoes/          # App de histórico de transações
-│   ├── models.py
-│   └── admin.py
-├── categorias/             # App de categorias
-├── usuarios/               # App de usuários
-├── api/                    # APIs REST
-│   ├── serializers.py
-│   └── views.py
-├── templates/              # Templates Django
-│   ├── base.html
-│   └── dashboard.html
-├── static/                 # Arquivos estáticos
-│   ├── css/
-│   │   ├── design-system.css
-│   │   ├── layout.css
-│   │   └── dashboard.css
-│   └── js/
-│       └── app.js
-├── manage.py
-├── requirements.txt
-├── Dockerfile
-├── docker-compose.yml
-└── .env.example
-```
+acervo contém modelos, serviços transacionais, importação e leitor. movimentacoes mantém auditoria. usuarios centraliza autorização; api utiliza as mesmas regras. integracoes contém clientes e catálogo auxiliar. config separa configurações local, teste, build estático e produção.
 
-## Roadmap
+Não altere estoque diretamente via update/queryset sem o serviço: isso contornaria a auditoria. Documentação de [permissões](docs/architecture.md) e [integrações](docs/data-import.md) descreve os fluxos suportados.
 
-- [x] Estrutura inicial do Django
-- [x] Design system CSS
-- [x] Layout com sidebar
-- [x] Dashboard com stats
-- [x] CRUD de itens
-- [x] Integração com leitor de código de barras
-- [x] APIs REST completas
-- [x] Sistema de autenticação avançado
-- [ ] Importação de CSV
-- [ ] Integração com MusicBrainz
-- [ ] Testes automatizados
-- [ ] Deploy no Render
-- [ ] CI/CD com GitHub Actions
+Os workflows estão separados: ci.yml valida, project-automation.yml reconcilia Issues do Project #3, deploy.yml prepara implantação manual com bloqueios. Não habilite CD nem automação remota sem revisar suas configurações e permissões.
 
-## Contribuindo
+## Roadmap restante
 
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+1. Executar CI remoto, incluindo PostgreSQL e build Docker.
+2. Ensaiar migração de uma cópia dos dados reais e restauração de backup.
+3. Configurar e conferir Project #3 em modo de simulação.
+4. Revisar custos e segurança AWS; criar homologação somente após autorização.
+5. Validar HTTPS, logs, health check e fluxos reais antes de autorizar produção.
+6. Futuramente: armazenamento de capas, outras fontes de metadados e avaliação formal de acessibilidade.
 
-## Licença
-
-Este projeto está sob licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
-## Contato
-
-Para dúvidas ou sugestões, abra uma issue no repositório.
-
----
-
-**Desenvolvido com ❤️ para gerenciar acervos de forma profissional e acessível.**
+Não há alegação de conformidade WCAG ou de atualização automática do dashboard em tempo real.

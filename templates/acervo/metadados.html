@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block titulo_pagina %}Pesquisar metadados{% endblock %}
+{% block conteudo %}
+<section class="card">
+<p>Selecione a edição correta e confira os dados antes de salvar. Metadados comerciais não identificam uma unidade física.</p>
+<form method="get">{% if produto %}<input type="hidden" name="produto" value="{{ produto.pk }}">{% endif %}{{ pesquisa.as_p }}<button class="btn btn-secundaria">Pesquisar</button></form>
+{% if erro %}<p class="alerta alerta-erro" role="alert">{{ erro }}</p>{% endif %}
+{% for local in locais %}<p>Produto local: {{ local }} — <a href="{% url 'acervo:cadastrar' %}?produto={{ local.pk }}">Cadastrar exemplar</a> · <a href="{% url 'acervo:metadados' %}?produto={{ local.pk }}">Complementar metadados</a></p>{% endfor %}
+{% for key, row in results %}
+<form method="post" class="linha-formulario">{% csrf_token %}<input type="hidden" name="escolha" value="{{ key }}"><input type="hidden" name="acao" value="selecionar">
+<span>{{ row.titulo }} · {{ row.artista_diretor }} · {{ row.ano|default:"Ano desconhecido" }} · {{ row.ean }} · {{ row.identificadores }}</span>
+<button class="btn btn-secundaria">Selecionar e revisar</button></form>
+{% empty %}{% if pesquisa.is_bound and not product_form and not erro %}<p>Nenhum resultado. Ajuste a pesquisa ou cadastre manualmente.</p>{% endif %}{% endfor %}
+{% if product_form %}
+<h2>Confirmar metadados</h2><form method="post">{% csrf_token %}<input type="hidden" name="acao" value="salvar"><input type="hidden" name="escolha" value="{{ escolha }}">
+{{ product_form.as_p }}<button class="btn btn-primaria">Confirmar produto e cadastrar exemplar</button></form>
+{% endif %}
+</section>
+{% endblock %}

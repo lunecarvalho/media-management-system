@@ -12,7 +12,7 @@
     <div class="tabela-wrapper">
         <div class="tabela-header"><h2 class="tabela-titulo">Histórico de movimentações</h2></div>
         <form method="get" class="filtros-acervo">
-            <input type="search" name="q" value="{{ consulta }}" placeholder="Buscar por item, código ou usuário">
+            <input type="search" aria-label="Buscar no acervo" name="q" value="{{ consulta }}" placeholder="Buscar por item, código ou usuário">
             <button type="submit" class="btn btn-secundaria">Buscar</button>
         </form>
         <div class="tabela-container">
@@ -35,4 +35,5 @@
         </div>
     </div>
 </div>
+{% include 'paginacao.html' %}
 {% endblock %}

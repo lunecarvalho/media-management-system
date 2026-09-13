@@ -1,0 +1,3 @@
+codigo_interno,ean,tipo,titulo,artista_diretor,categoria,ano,estado_conservacao,preco,localizacao
+MT00001,7890000000001,DVD,Matrix,Wachowski,Drama,1999,bom,20.00,A1
+MT00002,7890000000001,DVD,Matrix,Wachowski,Drama,1999,excelente,30.00,A2

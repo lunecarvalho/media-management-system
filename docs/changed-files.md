@@ -1,0 +1,125 @@
+# Inventario do workspace recuperado
+
+Comparacao com o HEAD local; inclui implementacoes anteriores preservadas, nao somente esta retomada. Nenhum commit foi criado.
+
+## Modificados
+
+- `.env.example`
+- `.gitignore`
+- `DEVELOPMENT.md`
+- `Dockerfile`
+- `README.md`
+- `acervo/admin.py`
+- `acervo/forms.py`
+- `acervo/models.py`
+- `acervo/urls.py`
+- `acervo/views.py`
+- `api/serializers.py`
+- `api/urls.py`
+- `api/views.py`
+- `categorias/urls.py`
+- `categorias/views.py`
+- `config/settings.py`
+- `config/urls.py`
+- `config/views.py`
+- `docker-compose.yml`
+- `movimentacoes/admin.py`
+- `movimentacoes/models.py`
+- `movimentacoes/views.py`
+- `requirements.txt`
+- `static/css/dashboard-fixed.css`
+- `static/js/app.js`
+- `templates/acervo/_campos_formulario.html`
+- `templates/acervo/cadastrar.html`
+- `templates/acervo/detalhe.html`
+- `templates/acervo/excluir.html`
+- `templates/acervo/lista.html`
+- `templates/base.html`
+- `templates/categorias/lista.html`
+- `templates/codigo_barras.html`
+- `templates/configuracoes.html`
+- `templates/dashboard-fixed.html`
+- `templates/movimentacoes/lista.html`
+- `templates/usuarios/lista.html`
+- `templates/usuarios/login.html`
+- `usuarios/views.py`
+
+## Novos (ainda nao versionados)
+
+- `.dockerignore`
+- `.github/workflows/ci.yml`
+- `.github/workflows/deploy.yml`
+- `.github/workflows/project-automation.yml`
+- `.python-version`
+- `acervo/barcodes.py`
+- `acervo/csv_import.py`
+- `acervo/import_views.py`
+- `acervo/migrations/0002_produto_exemplar.py`
+- `acervo/migrations/0003_alter_exemplar_codigo_interno_alter_exemplar_preco_and_more.py`
+- `acervo/migrations/0004_importacaocsv.py`
+- `acervo/services.py`
+- `acervo/tests/__init__.py`
+- `acervo/tests/test_barcodes.py`
+- `acervo/tests/test_catalogo.py`
+- `acervo/tests/test_constraints.py`
+- `acervo/tests/test_csv.py`
+- `acervo/tests/test_migration.py`
+- `acervo/tests/test_services.py`
+- `acervo/tests/test_validation.py`
+- `acervo/validators.py`
+- `api/exceptions.py`
+- `categorias/forms.py`
+- `config/pagination.py`
+- `config/production.py`
+- `config/static_settings.py`
+- `config/test_settings.py`
+- `config/tests/__init__.py`
+- `config/tests/test_build.py`
+- `config/tests/test_dashboard.py`
+- `config/tests/test_frontend.py`
+- `config/tests/test_production.py`
+- `config/tests/test_project.py`
+- `config/tests/test_settings.py`
+- `docker-compose.prod.yml`
+- `docs/architecture.md`
+- `docs/aws.md`
+- `docs/data-import.md`
+- `docs/github-project.md`
+- `examples/acervo.csv`
+- `integracoes/__init__.py`
+- `integracoes/apps.py`
+- `integracoes/management/__init__.py`
+- `integracoes/management/commands/__init__.py`
+- `integracoes/management/commands/importar_filmes.py`
+- `integracoes/migrations/0001_initial.py`
+- `integracoes/migrations/0002_filmereferencia.py`
+- `integracoes/migrations/__init__.py`
+- `integracoes/models.py`
+- `integracoes/movies_dataset.py`
+- `integracoes/musicbrainz.py`
+- `integracoes/tests/__init__.py`
+- `integracoes/tests/test_movies.py`
+- `integracoes/tests/test_musicbrainz.py`
+- `integracoes/tests/test_selection.py`
+- `integracoes/views.py`
+- `movimentacoes/migrations/0002_alter_movimentacao_options_movimentacao_anterior_and_more.py`
+- `scripts/__init__.py`
+- `scripts/build_bundle.py`
+- `scripts/project_automation.py`
+- `static/css/login.css`
+- `templates/acervo/importar.html`
+- `templates/acervo/metadados.html`
+- `templates/acervo/previa_csv.html`
+- `templates/categorias/excluir.html`
+- `templates/categorias/form.html`
+- `templates/paginacao.html`
+- `usuarios/middleware.py`
+- `usuarios/permissions.py`
+- `usuarios/tests/__init__.py`
+- `usuarios/tests/test_permissions.py`
+
+## Remocoes preexistentes preservadas
+
+- `static/css/dashboard-OLD.css`
+- `static/css/layout-OLD.css`
+- `templates/dashboard.html`

@@ -9,6 +9,7 @@
 
 {% block conteudo %}
 <div class="dashboard-container">
+    <p><a href="{% url 'acervo:metadados' %}">Pesquisar metadados externos antes de cadastrar</a></p>
     <form method="post" class="formulario-item card">
         {% csrf_token %}
         <div class="formulario-cabecalho flex-entre">

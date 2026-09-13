@@ -1,0 +1,17 @@
+# Somente aplicação; PostgreSQL externo. Não executa migrações automaticamente.
+services:
+  web:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      DJANGO_SETTINGS_MODULE: config.production
+      DEBUG: 'False'
+      SECRET_KEY: ${SECRET_KEY:?Defina SECRET_KEY}
+      DATABASE_URL: ${DATABASE_URL:?Defina DATABASE_URL com TLS verificado}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:?Defina os dominios}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:?Defina origens HTTPS}
+      TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-False}
+    volumes:
+      - ${RDS_CA_PATH:?Informe o certificado publico RDS}:/run/certs/rds.pem:ro
+    restart: unless-stopped

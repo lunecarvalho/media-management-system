@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block titulo_pagina %}Importar CSV{% endblock %}
+{% block conteudo %}
+<section class="card"><p>CSV UTF-8, separado por vírgulas. Até 1 MiB e 500 linhas. Não altera registros existentes. Categorias devem estar cadastradas.</p>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primaria">Validar e visualizar</button></form></section>
+{% endblock %}

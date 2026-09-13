@@ -1,52 +1,31 @@
 {% extends 'base.html' %}
-
-{% block titulo %}Código de barras - MediaTrack{% endblock %}
-{% block titulo_pagina %}Código de barras{% endblock %}
-{% block descricao_pagina %}Consulte um item pelo código de barras.{% endblock %}
-
+{% block titulo_pagina %}Código interno ou EAN/UPC{% endblock %}
 {% block conteudo %}
-<div class="dashboard-container pagina-simples">
-    <section class="card busca-codigo">
-        <h2>Consultar item</h2>
-        <p class="texto-secundario">Digite ou leia o código de barras para localizar um CD ou DVD.</p>
-        <form method="get" class="linha-formulario">
-            <input type="search" name="codigo" value="{{ codigo }}" placeholder="Código de barras" autofocus>
-            <button type="submit" class="btn btn-primaria">Consultar</button>
-        </form>
-    </section>
-
-    {% if codigo %}
-        {% if item %}
-        <section class="card resultado-codigo">
-            <span class="badge badge-{{ item.tipo|lower }}">{{ item.tipo }}</span>
-            <h2>{{ item.titulo }}</h2>
-            <p class="texto-secundario">{{ item.artista_diretor }}{% if item.ano %} · {{ item.ano }}{% endif %}</p>
-            <dl class="detalhes-item">
-                <div><dt>Código</dt><dd>{{ item.codigo_barras }}</dd></div>
-                <div><dt>Categoria</dt><dd>{{ item.categoria.nome }}</dd></div>
-                <div><dt>Localização</dt><dd>{{ item.localizacao|default:"Não informada" }}</dd></div>
-                <div><dt>Status</dt><dd><span class="badge badge-{{ item.status }}">{{ item.get_status_display }}</span></dd></div>
-            </dl>
-        </section>
-        {% else %}
-        <div class="alerta alerta-aviso">Nenhum item foi encontrado para o código <strong>{{ codigo }}</strong>.</div>
-        {% endif %}
-    {% endif %}
+<div class="pagina-simples">
+<section class="card busca-codigo">
+<p>Leitor em modo teclado com Enter ao final. No modo automático, o código interno tem prioridade.</p>
+<form method="get" class="linha-formulario">
+<label for="codigo">Código</label><input id="codigo" type="search" name="codigo" value="{{ codigo }}" data-barcode autofocus>
+<label for="modo">Interpretar como</label><select id="modo" name="modo">
+<option value="auto" {% if modo == 'auto' %}selected{% endif %}>Automático</option>
+<option value="interno" {% if modo == 'interno' %}selected{% endif %}>Código interno</option>
+<option value="ean" {% if modo == 'ean' %}selected{% endif %}>EAN/UPC</option>
+</select><button class="btn btn-primaria">Consultar</button></form>
+</section>
+{% if item %}
+<section class="card"><h2>Exemplar {{ item.codigo_interno }}</h2><p>{{ item.produto }} · {{ item.get_status_display }}</p><a href="{% url 'acervo:detalhe' item.pk %}">Abrir exemplar</a></section>
+{% elif produto %}
+<section class="card"><h2>{{ produto }}</h2><p>EAN/UPC: {{ produto.ean }}</p>
+{% if not disponiveis %}<p>Nenhum exemplar disponível. Você pode cadastrar uma nova unidade.</p>{% endif %}
+<a href="{% url 'acervo:cadastrar' %}?produto={{ produto.pk }}">Cadastrar exemplar deste produto</a>
+<ul>{% for exemplar in exemplares %}<li><a href="{% url 'acervo:detalhe' exemplar.pk %}">{{ exemplar.codigo_interno }}</a> · {{ exemplar.get_estado_conservacao_display }} · {{ exemplar.get_status_display }} · R$ {{ exemplar.preco|default_if_none:"—" }}</li>{% empty %}<li>Nenhum exemplar cadastrado.</li>{% endfor %}</ul>
+{% include 'paginacao.html' %}
+</section>
+{% elif codigo %}
+<section class="card"><h2>Código desconhecido</h2><p>{{ codigo }}</p>
+<a href="{% url 'acervo:metadados' %}?ean={{ codigo|urlencode }}&fonte=musicbrainz">Pesquisar CD por EAN</a> ·
+<a href="{% url 'acervo:metadados' %}?fonte=movies">Pesquisar filme por título</a> ·
+<a href="{% url 'acervo:cadastrar' %}">Cadastrar manualmente</a></section>
+{% endif %}
 </div>
-{% endblock %}
-
-{% block js_adicional %}
-<script>
-    // Mantém o foco no campo para que o leitor USB (modo teclado) sempre digite ali.
-    document.addEventListener('DOMContentLoaded', function () {
-        const campoCodigo = document.querySelector('.busca-codigo input[name="codigo"]');
-        if (!campoCodigo) return;
-
-        campoCodigo.focus();
-        document.addEventListener('click', function (evento) {
-            if (evento.target.closest('a, button')) return;
-            campoCodigo.focus();
-        });
-    });
-</script>
 {% endblock %}

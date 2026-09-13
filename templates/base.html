@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
     
     <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
     
     <!-- Stylesheets -->
     <link rel="stylesheet" href="{% static 'css/design-system.css' %}">
@@ -81,17 +81,18 @@
             <div class="sidebar-status">
                 <div class="status-item">
                     <span class="status-indicador"></span>
-                    <span>Leitor conectado</span>
+                    <span>Leitura em modo teclado</span>
                 </div>
                 
-                <a href="{% url 'usuarios:logout' %}" class="usuario-bloco">
+                <form method="post" action="{% url 'usuarios:logout' %}" class="usuario-bloco">
+                    {% csrf_token %}
                     <div class="usuario-avatar">{{ user.first_name|first|default:"U" }}</div>
                     <div class="usuario-info">
                         <span class="usuario-nome">{{ user.get_full_name|default:user.username }}</span>
                         <span class="usuario-tipo">{% if user.perfil %}{{ user.perfil.get_tipo_display }}{% else %}Sem perfil{% endif %}</span>
                     </div>
-                    <span class="usuario-seta">→</span>
-                </a>
+                    <button type="submit" class="btn btn-secundaria">Sair</button>
+                </form>
             </div>
         </aside>
         
@@ -99,7 +100,7 @@
         <div class="main-content-wrapper">
             <!-- HEADER -->
             <header class="header">
-                <button class="menu-toggler" id="menu-toggler" aria-label="Abrir menu">
+                <button class="menu-toggler" id="menu-toggler" aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false">
                     <svg data-lucide="menu"></svg>
                 </button>
                 
@@ -107,7 +108,7 @@
                     <h1>{% block titulo_pagina %}Dashboard{% endblock %}</h1>
                     <div class="header-subtitulo">
                         <span class="header-descricao">{% block descricao_pagina %}Visão geral do acervo{% endblock %}</span>
-                        <span class="header-data" id="data-atual"></span>
+                        <span class="header-data" id="data-atual">{% now "d/m/Y" %}</span>
                     </div>
                 </div>
                 
@@ -123,16 +124,14 @@
             <main class="conteudo-principal">
             {% if messages %}
                 {% for message in messages %}
-                    <div class="alerta alerta-{{ message.tags }}">
+                    <div class="alerta alerta-{{ message.tags }}" role="status">
                         {{ message }}
                     </div>
                 {% endfor %}
             {% endif %}
             
             {% block conteudo %}{% endblock %}
-        </main>
             </main>
-            </div>
         </div>
     </div>
     

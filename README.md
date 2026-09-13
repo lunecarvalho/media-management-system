@@ -1,26 +1,21 @@
 # MediaTrack
 
-MediaTrack é um sistema web para gerenciamento e controle de acervos, com foco  em CDs e DVDs, pensado para pequenos negócios que trabalham com mídias físicas. 
+Sistema Django para o acervo de CDs e DVDs de um sebo, desenvolvido no contexto do Projeto Integrador II da UNIVESP.
 
-Com ele é possível cadastrar itens, consultar o acervo por código de barras, acompanhar o histórico de movimentações (vendas, reservas, edições) e gerenciar categorias e usuários — tudo em um painel único e organizado.
+## Estado atual
 
-O sistema está sendo desenvolvido como recurso para a disciplina de Projeto Integrador II da instituição UNIVESP.
+Python 3.14 e Django 5.2 LTS. Produto representa a edição comercial; Exemplar representa cada unidade física. Existem autenticação por sessão, permissões por perfil ativo, histórico transacional, dashboard consultado no banco, paginação, API REST, importação CSV com confirmação e consulta por código interno ou EAN/UPC.
 
-### Projeto ainda em desenvolvimento. 
+MusicBrainz fornece sugestões para CDs com seleção explícita. O Movies Dataset é um catálogo auxiliar opcional para filmes, separado do banco operacional. Não identifica códigos de barras físicos.
 
-## Principais funcionalidades
+Produção preparada para Gunicorn/WhiteNoise em Docker no Elastic Beanstalk, com PostgreSQL no RDS e TLS verificado. Nenhuma infraestrutura foi criada e nenhum deploy foi executado. Docker e PostgreSQL real ainda precisam da validação externa descrita na documentação.
 
-- Dashboard com visão geral do acervo e estatísticas
-- Cadastro, edição e consulta de itens (CDs e DVDs)
-- Leitura de código de barras integrada ao fluxo de consulta
-- Histórico de movimentações do acervo
-- Gerenciamento de categorias e usuários com perfis de acesso
-- API REST para integração com outras ferramentas
+## Documentação
 
-## Tecnologias
+- [Instalação e desenvolvimento](DEVELOPMENT.md)
+- [Arquitetura, permissões e migrações](docs/architecture.md)
+- [CSV e fontes de metadados](docs/data-import.md)
+- [Docker, AWS e operação](docs/aws.md)
+- [GitHub Project pessoal #3](docs/github-project.md)
 
-Construído com Django, Django REST Framework, HTML5, CSS3 e JavaScript puro, com suporte a PostgreSQL e SQLite.
-
-## Documentação para desenvolvedores
-
-Instruções detalhadas de instalação, configuração de ambiente e deploy estão em [DEVELOPMENT.md](DEVELOPMENT.md).
+O CI mantém SQLite e PostgreSQL e valida o pacote Docker após os testes. O CD é somente manual, bloqueado por padrão e depende do CI. O próximo marco é validar a imagem e o PostgreSQL no CI, revisar a migração com backup e preparar um ambiente de homologação após autorização.
