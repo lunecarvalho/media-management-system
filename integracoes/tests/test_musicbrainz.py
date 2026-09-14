@@ -30,3 +30,18 @@ class MusicBrainzTests(TestCase):
     def test_unavailable(self, get):
         get.return_value = Mock(status_code=503)
         with self.assertRaises(FonteIndisponivel): pesquisar('Album')
+
+    @patch('integracoes.musicbrainz.requests.get')
+    def test_barcode_flow_reuses_provider_with_cd_format_filter(self, get):
+        get.return_value = Mock(status_code=200)
+        get.return_value.json.return_value = {'releases': []}
+        pesquisar(ean='7891234567895', somente_cd=True)
+        self.assertEqual(get.call_args.kwargs['params']['query'], 'barcode:"7891234567895" AND format:CD')
+        self.assertIn('User-Agent', get.call_args.kwargs['headers'])
+
+    @patch('integracoes.musicbrainz.requests.get')
+    def test_invalid_json_shape_is_reported_as_provider_failure(self, get):
+        get.return_value = Mock(status_code=200)
+        get.return_value.json.return_value = []
+        with self.assertRaises(FonteIndisponivel):
+            pesquisar(ean='7891234567895', somente_cd=True)

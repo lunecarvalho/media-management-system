@@ -85,7 +85,7 @@
 .menu-titulo {
   font-size: 0.75rem;
   font-weight: 600;
-  font-family: 'Outfit', sans-serif;
+  font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--cor-texto-secundario);

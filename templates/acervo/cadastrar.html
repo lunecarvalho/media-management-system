@@ -9,28 +9,60 @@
 
 {% block conteudo %}
 <div class="dashboard-container">
+    {% if request.GET.origem == 'barcode' %}<p role="status">Etapa 4 — Cadastrar: revise os dados da leitura, selecione a categoria e confira os dados da cópia física. Nada foi salvo ainda.</p>{% endif %}
     <p><a href="{% url 'acervo:metadados' %}">Pesquisar metadados externos antes de cadastrar</a></p>
-    <form method="post" class="formulario-item card">
+    <form method="post" class="formulario-item card cadastro-item" data-item-registration>
         {% csrf_token %}
-        <div class="formulario-cabecalho flex-entre">
-            <div>
-                <h2>Novo item</h2>
-                <p class="texto-secundario">Preencha os dados para incluir o item no acervo.</p>
-            </div>
-            <a href="{% url 'acervo:lista' %}" class="btn btn-secundaria">Cancelar</a>
-        </div>
-
         {% if form.non_field_errors %}
             <div class="alerta alerta-erro">{{ form.non_field_errors }}</div>
         {% endif %}
 
-        <div class="formulario-grade">
-            {% include 'acervo/_campos_formulario.html' %}
-        </div>
+        <section class="cadastro-secao" aria-labelledby="titulo-produto">
+            <h3 id="titulo-produto">Produto</h3>
+            <p class="texto-secundario">Informações da mídia compartilhadas entre suas cópias.</p>
+            <fieldset class="cadastro-escolha" data-product-choice hidden>
+                <legend>Como deseja cadastrar?</legend>
+                <label><input type="radio" name="produto_modo" value="existente" aria-controls="produto-existente" {% if form.produto.value %}checked{% endif %}> Usar produto existente</label>
+                <label><input type="radio" name="produto_modo" value="novo" aria-controls="produto-novo" {% if not form.produto.value %}checked{% endif %}> Cadastrar novo produto</label>
+            </fieldset>
+            <p data-product-fallback>Selecione um produto existente ou deixe esse seletor vazio e preencha os dados do novo produto.</p>
+            <div id="produto-existente" data-existing-product>
+                {% include 'acervo/_campo_cadastro.html' with field=form.produto label='Produto existente' %}
+            </div>
+            <div id="produto-novo" data-new-product>
+                {% if form.product_form.non_field_errors %}<div class="alerta alerta-erro" role="alert">{{ form.product_form.non_field_errors }}</div>{% endif %}
+                <div class="formulario-grade">
+                    {% for field in form.product_form %}
+                        {% if field.name == 'artista_diretor' %}
+                            {% include 'acervo/_campo_cadastro.html' with label='Artista/Diretor' %}
+                        {% elif field.name == 'ean' %}
+                            {% include 'acervo/_campo_cadastro.html' with label='EAN/UPC' %}
+                        {% elif field.name == 'gravadora_distribuidora' %}
+                            {% include 'acervo/_campo_cadastro.html' with label='Gravadora/Distribuidora' %}
+                        {% else %}
+                            {% include 'acervo/_campo_cadastro.html' with label=field.label %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        <section class="cadastro-secao" aria-labelledby="titulo-exemplar">
+            <h3 id="titulo-exemplar">Exemplar</h3>
+            <p class="texto-secundario">Dados da cópia física que será adicionada ao acervo.</p>
+            <div class="formulario-grade">
+                {% for field in form %}
+                    {% if field.name != 'produto' %}
+                        {% include 'acervo/_campo_cadastro.html' with label=field.label %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </section>
 
         <div class="formulario-acoes">
-            <button type="submit" class="btn btn-primaria">Salvar item</button>
+            <a href="{% url 'acervo:lista' %}" class="btn btn-secundaria">Cancelar</a>
+            <button type="submit" class="btn btn-primaria">Cadastrar item</button>
         </div>
     </form>
 </div>
 {% endblock %}
+{% block js_adicional %}<script src="{% static 'js/cadastro-item.js' %}" defer></script>{% endblock %}

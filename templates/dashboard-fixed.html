@@ -1,26 +1,66 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block titulo_pagina %}Dashboard{% endblock %}
+{% block classe_pagina %}pagina-dashboard{% endblock %}
+{% block css_adicional %}<link rel="stylesheet" href="{% static 'css/dashboard-view.css' %}">{% endblock %}
 {% block conteudo %}
-<div class="dashboard-container">
-    <div class="stats-grid">
-        {% for label, value in indicadores %}
-        <div class="card-estatistica"><div class="card-valor">{{ value }}</div><div class="card-titulo-stat">{{ label }}</div></div>
-        {% endfor %}
-        <div class="card-estatistica"><div class="card-valor">R$ {{ valor_estoque|floatformat:2 }}</div><div class="card-titulo-stat">Estoque disponível e reservado</div></div>
+<div class="visao-dashboard">
+    <section class="indicadores-dashboard" aria-label="Indicadores do acervo">
+        <article class="metrica-dashboard"><span class="icone-dashboard azul"><svg data-lucide="disc-3" aria-hidden="true"></svg></span><strong>{{ metricas.cds }}</strong><h2>CDs no acervo</h2><small>Disponíveis e reservados</small></article>
+        <article class="metrica-dashboard"><span class="icone-dashboard violeta"><svg data-lucide="film" aria-hidden="true"></svg></span><strong>{{ metricas.dvds }}</strong><h2>DVDs no acervo</h2><small>Disponíveis e reservados</small></article>
+        <article class="metrica-dashboard"><span class="icone-dashboard verde"><svg data-lucide="circle-check" aria-hidden="true"></svg></span><strong>{{ metricas.disponiveis }}</strong><h2>Disponíveis</h2><small>Exemplares para venda</small></article>
+        <article class="metrica-dashboard"><span class="icone-dashboard amarelo"><svg data-lucide="shopping-bag" aria-hidden="true"></svg></span><strong>{{ vendidos_mes }}</strong><h2>Vendidos no mês</h2><small>Vendas registradas</small></article>
+        <article class="metrica-dashboard"><span class="icone-dashboard azul"><svg data-lucide="coins" aria-hidden="true"></svg></span><strong class="valor-financeiro">R$ {{ valor_estoque|floatformat:'2g' }}</strong><h2>Valor do acervo</h2><small>Disponíveis e reservados</small></article>
+    </section>
+    <div class="centro-dashboard">
+        <section class="acoes-dashboard" aria-labelledby="acoes-titulo">
+            <h2 id="acoes-titulo" class="titulo-painel">AÇÕES RÁPIDAS</h2>
+            <a class="acao-dashboard acao-destaque" href="{% url 'acervo:cadastrar' %}"><span class="icone-dashboard"><svg data-lucide="plus" aria-hidden="true"></svg></span><span><strong>Cadastrar item</strong><span>Adicionar CD ou DVD ao acervo</span></span></a>
+            <a class="acao-dashboard" href="{% url 'codigo_barras' %}"><span class="icone-dashboard azul"><svg data-lucide="scan-line" aria-hidden="true"></svg></span><span><strong>Ler código de barras</strong><span>Identificar item pelo leitor físico</span></span></a>
+            <a class="acao-dashboard" href="{% url 'acervo:lista' %}"><span class="icone-dashboard azul"><svg data-lucide="search" aria-hidden="true"></svg></span><span><strong>Consultar acervo</strong><span>Buscar e filtrar todos os itens</span></span></a>
+        </section>
+        <section class="painel-dashboard" aria-labelledby="vendas-titulo">
+            <h2 id="vendas-titulo" class="titulo-painel">VENDAS — ÚLTIMOS 7 DIAS</h2>
+            <div class="conteudo-painel">
+                <p class="total-vendas"><strong>{{ vendas_total }}</strong> vendas</p>
+                <ol class="vendas-grafico" aria-label="Vendas por dia, incluindo hoje">
+                    {% for dia in vendas_dias %}<li>
+                        <span class="valor-dia">{{ dia.total }}</span>
+                        <svg viewBox="0 0 40 100" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect x="0" y="{{ dia.y }}" width="40" height="{{ dia.altura }}" rx="3"></rect></svg>
+                        <time datetime="{{ dia.data|date:'Y-m-d' }}" title="{{ dia.data|date:'d/m/Y' }}">{{ dia.data|date:'D' }}<span>{{ dia.data|date:'d/m' }}</span></time>
+                    </li>{% endfor %}
+                </ol>
+                {% if not vendas_total %}<p class="nota-dashboard">Nenhuma venda nos últimos 7 dias.</p>{% endif %}
+                <p class="nota-dashboard">Eventos de venda; cancelamentos não descontados.</p>
+            </div>
+        </section>
+        <section class="painel-dashboard" aria-labelledby="categorias-titulo">
+            <h2 id="categorias-titulo" class="titulo-painel">TOP CATEGORIAS</h2>
+            <div class="conteudo-painel">
+                <ul class="categorias-dashboard">
+                    {% for categoria in top_categorias %}<li>
+                        <div><label for="categoria-{{ forloop.counter }}">{{ categoria.produto__categoria__nome }}</label><span>{{ categoria.total }}</span></div>
+                        <progress id="categoria-{{ forloop.counter }}" value="{{ categoria.total }}" max="{{ categoria_max }}">{{ categoria.total }}</progress>
+                    </li>{% empty %}<li class="vazio-dashboard">Nenhuma categoria com exemplares disponíveis ou reservados.</li>{% endfor %}
+                </ul>
+                {% if top_categorias %}<p class="nota-dashboard">Exemplares disponíveis e reservados por categoria.</p>{% endif %}
+            </div>
+        </section>
     </div>
-    <div class="quick-actions-grid mb-lg">
-        <a href="{% url 'acervo:cadastrar' %}" class="card-acao">Cadastrar exemplar</a>
-        <a href="{% url 'codigo_barras' %}" class="card-acao">Consultar código</a>
-        <a href="{% url 'acervo:lista' %}" class="card-acao">Consultar acervo</a>
-    </div>
-    <section class="tabela-wrapper">
-        <div class="tabela-header"><h2 class="tabela-titulo">Últimas movimentações</h2></div>
-        <div class="tabela-container"><table>
-            <thead><tr><th>Exemplar</th><th>Evento</th><th>Responsável</th><th>Data</th></tr></thead>
-            <tbody>{% for evento in recentes %}
-                <tr><td><a href="{% url 'acervo:detalhe' evento.item_id %}">{{ evento.item }}</a></td><td>{{ evento.get_tipo_display }}</td><td>{{ evento.usuario.username }}</td><td>{{ evento.data|date:"d/m/Y H:i" }}</td></tr>
-            {% empty %}<tr><td colspan="4">Nenhuma movimentação registrada.</td></tr>{% endfor %}</tbody>
-        </table></div>
+    <section class="painel-dashboard historico-dashboard" aria-labelledby="movimentacoes-titulo">
+        <div class="cabecalho-painel"><h2 id="movimentacoes-titulo" class="titulo-painel">ÚLTIMAS MOVIMENTAÇÕES</h2><a href="{% url 'movimentacoes:lista' %}">Ver todas →</a></div>
+        <div class="tabela-container" tabindex="0" role="region" aria-label="Tabela de últimas movimentações">
+            <table>
+                <thead><tr><th scope="col">Item</th><th scope="col">Tipo</th><th scope="col">Código</th><th scope="col">Movimentação</th><th scope="col">Usuário</th><th scope="col">Data</th><th scope="col">Status atual</th></tr></thead>
+                <tbody>{% for evento in recentes %}<tr>
+                    <td><a href="{% url 'acervo:detalhe' evento.item_id %}">{{ evento.item.produto.titulo }}</a></td>
+                    <td><span class="badge badge-{{ evento.item.produto.tipo|lower }}">{{ evento.item.produto.tipo }}</span></td>
+                    <td><code>{{ evento.item.codigo_interno }}</code></td><td>{{ evento.get_tipo_display }}</td><td>{{ evento.usuario.username }}</td>
+                    <td><time datetime="{{ evento.data|date:'c' }}">{{ evento.data|date:'d/m/Y H:i' }}</time></td>
+                    <td><span class="badge badge-{{ evento.item.status }}">{{ evento.item.get_status_display }}</span></td>
+                </tr>{% empty %}<tr><td colspan="7" class="vazio-dashboard">Nenhuma movimentação registrada.</td></tr>{% endfor %}</tbody>
+            </table>
+        </div>
     </section>
 </div>
 {% endblock %}

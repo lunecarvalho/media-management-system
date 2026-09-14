@@ -1,0 +1,82 @@
+/* Composição exclusiva do dashboard. */
+.pagina-dashboard { --cor-fundo: #070f19; --cor-card: #0e1a29; --cor-borda: #223040; }
+.pagina-dashboard .header { border-bottom: 0; padding-bottom: 12px; }
+.pagina-dashboard .header-subtitulo { flex-wrap: wrap; gap: 6px; }
+.pagina-dashboard .header-data::before { content: '· '; }
+.pagina-dashboard .header-status { color: #26d9a3; background: #0b2427; border: 1px solid #16443e; border-radius: 24px; font-family: var(--fonte-mono); font-size: .78rem; }
+.pagina-dashboard .conteudo-principal { padding-top: 20px; }
+.visao-dashboard { display: grid; gap: 24px; min-width: 0; }
+.indicadores-dashboard { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+.metrica-dashboard, .painel-dashboard, .acao-dashboard { background: var(--cor-card); border: 1px solid var(--cor-borda); border-radius: 18px; min-width: 0; }
+.metrica-dashboard { padding: 20px; display: flex; flex-direction: column; align-items: flex-start; }
+.icone-dashboard { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: #172b44; flex: 0 0 auto; }
+.icone-dashboard svg { width: 22px; height: 22px; stroke-width: 1.7; }
+.icone-dashboard.azul { color: #51a7ff; background: #14283f; }
+.icone-dashboard.violeta { color: #b29aff; background: #26253e; }
+.icone-dashboard.verde { color: #28dca1; background: #112f32; }
+.icone-dashboard.amarelo { color: #f7c744; background: #2c2d25; }
+.metrica-dashboard > strong { font-size: clamp(1.65rem, 2.1vw, 2.2rem); line-height: 1.2; margin-top: 16px; overflow-wrap: anywhere; }
+.metrica-dashboard > strong.valor-financeiro { font-size: clamp(1.3rem, 1.8vw, 2rem); }
+.metrica-dashboard h2 { font-size: .9rem; font-weight: 400; color: #9aafc7; margin: 5px 0 0; }
+.metrica-dashboard small { color: #9aafc7; font-size: .67rem; margin-top: 5px; font-family: var(--fonte-mono); }
+.centro-dashboard { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
+.titulo-painel { font-family: var(--fonte-mono); font-size: .75rem; font-weight: 400; letter-spacing: .08em; color: #9aafc7; margin: 0; }
+.acoes-dashboard { display: grid; gap: 12px; align-content: start; }
+.acoes-dashboard > h2 { padding: 0 0 3px; }
+.acao-dashboard { display: flex; align-items: center; gap: 20px; padding: 22px 20px; color: #f4f7fc; text-decoration: none; transition: border-color .15s, background-color .15s; }
+.acao-dashboard > span:last-child { min-width: 0; }
+.acao-dashboard strong { display: block; font-size: .95rem; }
+.acao-dashboard strong + span { display: block; font-size: .95rem; color: #a4b9d1; margin-top: 2px; }
+.acao-dashboard:hover { border-color: #509ef4; background: #15283d; color: white; }
+.acao-destaque { background: #307de0; border-color: #307de0; }
+.acao-destaque .icone-dashboard { background: #ffffff24; }
+.acao-destaque strong + span { color: #fff; }
+.acao-destaque:hover { background: #246ac4; }
+.visao-dashboard :focus-visible { outline: 2px solid #6abaff; outline-offset: 3px; }
+.painel-dashboard > .titulo-painel, .cabecalho-painel { padding: 18px 22px; border-bottom: 1px solid var(--cor-borda); }
+.conteudo-painel { padding: 20px 22px; }
+.total-vendas { color: #9aafc7; margin-bottom: 12px; }
+.total-vendas strong { color: #f4f7fc; font-size: 2rem; line-height: 1; margin-right: 6px; }
+.vendas-grafico { list-style: none; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.vendas-grafico li { min-width: 0; text-align: center; }
+.vendas-grafico svg { display: block; width: 100%; height: 78px; border-bottom: 1px solid #2b4059; fill: #254a71; }
+.vendas-grafico li:last-child svg { fill: #398bf1; }
+.valor-dia, .vendas-grafico time { font-family: var(--fonte-mono); font-size: .64rem; color: #a4b9d1; }
+.vendas-grafico time { display: block; margin-top: 6px; }
+.vendas-grafico time span { display: block; font-size: .6rem; }
+.nota-dashboard { font-size: .72rem; color: #a4b9d1; margin: 14px 0 0; line-height: 1.45; }
+.categorias-dashboard { list-style: none; display: grid; gap: 15px; }
+.categorias-dashboard li > div { display: flex; justify-content: space-between; gap: 10px; font-size: .88rem; }
+.categorias-dashboard label { overflow-wrap: anywhere; }
+.categorias-dashboard li > div > span { font-family: var(--fonte-mono); font-size: .75rem; color: #a4b9d1; }
+.categorias-dashboard progress { appearance: none; display: block; width: 100%; height: 5px; margin-top: 6px; border: 0; border-radius: 5px; overflow: hidden; background: #1c2e42; color: #398bf1; }
+.categorias-dashboard progress::-webkit-progress-bar { background: #1c2e42; }
+.categorias-dashboard progress::-webkit-progress-value { background: #398bf1; border-radius: 5px; }
+.categorias-dashboard progress::-moz-progress-bar { background: #398bf1; }
+.categorias-dashboard li:nth-child(2) progress::-webkit-progress-value { background: #ac91f8; }
+.categorias-dashboard li:nth-child(3) progress::-webkit-progress-value { background: #efc13b; }
+.categorias-dashboard li:nth-child(4) progress::-webkit-progress-value { background: #25c99d; }
+.cabecalho-painel { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.cabecalho-painel a { font-size: .8rem; color: #61afff; white-space: nowrap; }
+.historico-dashboard th, .historico-dashboard td { padding: 12px 18px; font-size: .82rem; }
+.historico-dashboard th { font-size: .7rem; color: #9aafc7; }
+.historico-dashboard td a { color: #f4f7fc; }
+.historico-dashboard time { font-family: var(--fonte-mono); font-size: .7rem; white-space: nowrap; }
+.vazio-dashboard { color: #a4b9d1; font-size: .85rem; padding: 18px 0; }
+@media (max-width: 1200px) {
+  .metrica-dashboard { padding: 16px; }
+  .centro-dashboard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .acoes-dashboard { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .acoes-dashboard > h2 { grid-column: 1 / -1; }
+  .acao-dashboard { padding: 14px; gap: 10px; }
+}
+@media (max-width: 1000px) { .indicadores-dashboard { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 650px) {
+  .pagina-dashboard .header { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 14px; }
+  .pagina-dashboard .header-direita { grid-column: 2; }
+  .pagina-dashboard .header-status { padding: 6px 12px; }
+  .indicadores-dashboard { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .centro-dashboard, .acoes-dashboard { grid-template-columns: minmax(0, 1fr); }
+  .visao-dashboard { gap: 20px; }
+  .cabecalho-painel { flex-wrap: wrap; }
+}

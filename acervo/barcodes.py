@@ -10,5 +10,5 @@ def localizar(codigo, modo='auto'):
         if exemplar:
             return exemplar, exemplar.produto
     if modo != 'interno':
-        return None, Produto.objects.filter(ean=codigo).first()
+        return None, Produto.objects.select_related('categoria').filter(ean=codigo).first()
     return None, None

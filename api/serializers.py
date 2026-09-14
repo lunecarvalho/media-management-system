@@ -8,12 +8,13 @@ class CategoriaSerializer(serializers.ModelSerializer):
         fields = ['id', 'nome', 'descricao']
 
 class ProdutoSerializer(serializers.ModelSerializer):
+    categoria_nome = serializers.CharField(source='categoria.nome', read_only=True)
     def validate_ean(self, value):
         return value.strip() if value else None
     class Meta:
         model = Produto
         fields = ['id', 'tipo', 'titulo', 'artista_diretor', 'ean', 'categoria', 'ano',
-                  'gravadora_distribuidora', 'descricao', 'identificadores', 'metadados', 'origem']
+                  'gravadora_distribuidora', 'descricao', 'identificadores', 'metadados', 'origem', 'categoria_nome']
         read_only_fields = ['identificadores', 'metadados', 'origem']
 
 class ItemSerializer(serializers.ModelSerializer):

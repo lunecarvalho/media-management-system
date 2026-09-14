@@ -36,6 +36,8 @@ def consultar(params):
         if response.status_code != 200:
             raise FonteIndisponivel('MusicBrainz indisponível. Tente novamente mais tarde.')
         data = response.json()
+        if not isinstance(data, dict):
+            raise FonteIndisponivel('Resposta inválida da fonte externa.')
         releases = data.get('releases')
         if not isinstance(releases, list):
             raise FonteIndisponivel('Resposta inválida da fonte externa.')
@@ -61,7 +63,7 @@ def consultar(params):
         raise FonteIndisponivel('Não foi possível consultar o MusicBrainz.') from exc
 
 
-def pesquisar(texto='', artista='', ean=''):
+def pesquisar(texto='', artista='', ean='', somente_cd=False):
     def quoted(value):
         # Lucene: restringir operadores para não permitir consultas arbitrárias.
         return '"' + ''.join(c for c in value[:200] if c.isalnum() or c in ' -_.') + '"'
@@ -71,4 +73,6 @@ def pesquisar(texto='', artista='', ean=''):
     if ean.strip(): parts.append('barcode:' + quoted(ean))
     if not parts:
         return []
+    if somente_cd:
+        parts.append('format:CD')
     return consultar({'query': ' AND '.join(parts)})

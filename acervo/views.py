@@ -56,7 +56,12 @@ def cadastrar(request):
             messages.success(request, f'{item.titulo} foi adicionado ao acervo.')
             return redirect('acervo:lista')
     else:
-        form = ItemForm(initial={'produto': request.GET.get('produto')})
+        from .barcode_flow import dados_cadastro
+        initial, product_initial, expired = dados_cadastro(request)
+        form = ItemForm(initial=initial)
+        form.product_form.initial.update(product_initial)
+        if expired:
+            messages.warning(request, 'Os metadados da leitura expiraram. Consulte novamente ou preencha os dados manualmente.')
 
     return render(
         request,

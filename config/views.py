@@ -8,6 +8,9 @@ from django.http import JsonResponse
 from django.db import connection, DatabaseError
 from django.views.decorators.http import require_safe
 from django.views.decorators.cache import never_cache
+from django.db.models.functions import TruncDate
+from django.utils import timezone
+from datetime import datetime, time, timedelta
 
 
 @require_safe
@@ -30,14 +33,35 @@ def readiness(request):
 
 
 def dashboard(request):
-    counts = Item.objects.aggregate(total=Count('pk'),
-        disponivel=Count('pk', filter=Q(status='disponivel')),
-        reservado=Count('pk', filter=Q(status='reservado')),
-        vendido=Count('pk', filter=Q(status='vendido')))
-    value = Item.objects.filter(status__in=['disponivel', 'reservado']).aggregate(valor=Sum('preco'))['valor'] or Decimal('0')
+    estoque = Q(status__in=['disponivel', 'reservado'])
+    counts = Item.objects.aggregate(
+        cds=Count('pk', filter=estoque & Q(produto__tipo='CD')),
+        dvds=Count('pk', filter=estoque & Q(produto__tipo='DVD')),
+        disponiveis=Count('pk', filter=Q(status='disponivel')),
+        valor=Sum('preco', filter=estoque))
+    now = timezone.now()
+    today = timezone.localdate(now)
+    first_day = today - timedelta(days=6)
+    month_start = today.replace(day=1)
+    start = timezone.make_aware(datetime.combine(min(first_day, month_start), time.min))
+    # Eventos de venda, não o status atual da cópia. Cancelamentos não apagam o histórico.
+    daily_sales = dict(Movimentacao.objects.filter(tipo='venda', data__gte=start, data__lte=now)
+        .annotate(dia=TruncDate('data')).values('dia').annotate(total=Count('pk'))
+        .order_by('dia').values_list('dia', 'total'))
+    days = [{'data': first_day + timedelta(days=i),
+             'total': daily_sales.get(first_day + timedelta(days=i), 0)} for i in range(7)]
+    maximum = max((day['total'] for day in days), default=0) or 1
+    for day in days:
+        day['altura'] = round(day['total'] * 100 / maximum)
+        day['y'] = 100 - day['altura']
+    month_sales = sum(total for day, total in daily_sales.items() if day >= month_start)
+    categories = list(Item.objects.filter(estoque).values('produto__categoria__nome')
+        .annotate(total=Count('pk')).order_by('-total', 'produto__categoria__nome')[:4])
+    value = counts['valor'] or Decimal('0')
     return render(request, 'dashboard-fixed.html', {
-        'indicadores': [('Produtos', Produto.objects.count()), ('Exemplares', counts['total']),
-                        ('Disponíveis', counts['disponivel']), ('Reservados', counts['reservado']), ('Vendidos', counts['vendido'])],
+        'metricas': counts, 'vendidos_mes': month_sales,
+        'vendas_dias': days, 'vendas_total': sum(day['total'] for day in days),
+        'top_categorias': categories, 'categoria_max': categories[0]['total'] if categories else 1,
         'valor_estoque': value,
         'recentes': Movimentacao.objects.select_related('item__produto', 'usuario')[:10],
     })

@@ -20,8 +20,9 @@ class BarcodeTests(TestCase):
 
     def test_product_without_copies(self):
         response = self.client.get('/codigo-barras/', {'codigo': '789123'})
-        self.assertContains(response, 'Cadastrar exemplar deste produto')
-        self.assertContains(response, 'Nenhum exemplar disponível')
+        self.assertContains(response, 'Item identificado com sucesso')
+        self.assertContains(response, 'Nenhum exemplar cadastrado')
+        self.assertContains(response, 'Ver no acervo')
 
     def test_multiple_copies_for_ean(self):
         for code in ['MT1', 'MT2']:
@@ -31,7 +32,8 @@ class BarcodeTests(TestCase):
         self.assertEqual(self.client.get('/api/exemplares/codigo/789123/').json()['tipo_codigo'], 'ean')
 
     def test_unknown_code_and_explicit_mode(self):
-        self.assertContains(self.client.get('/codigo-barras/?codigo=unknown'), 'Código desconhecido')
+        self.assertContains(self.client.get('/codigo-barras/?codigo=unknown'), 'Código não encontrado no sistema')
+        self.assertContains(self.client.get('/codigo-barras/?codigo=unknown'), 'Cadastrar este item')
         Exemplar.objects.create(produto=self.product, codigo_interno='789123', usuario_responsavel=self.user)
         self.assertIsNone(self.client.get('/codigo-barras/?codigo=789123&modo=ean').context['item'])
 
@@ -113,3 +115,48 @@ class BarcodeTests(TestCase):
         self.assertContains(response, 'aria-live="polite"')
         self.assertContains(response, 'aria-busy="false"')
         self.assertContains(response, 'Consultar em página completa')
+
+    def test_reading_interface_is_truthful_and_keeps_form_contract(self):
+        response = self.client.get('/codigo-barras/')
+        self.assertContains(response, '<h1>Código de barras</h1>', html=True)
+        self.assertContains(response, 'Aguardando leitura')
+        self.assertContains(response, 'Orientação do processo')
+        self.assertContains(response, 'COMO USAR')
+        self.assertContains(response, 'name="consulta_html"')
+        self.assertContains(response, 'name="modo"')
+        self.assertContains(response, 'name="codigo"')
+        self.assertContains(response, 'data-state="idle"')
+        self.assertNotContains(response, 'Leitor físico conectado')
+        self.assertNotContains(response, 'Simular leitura')
+
+    def test_live_status_remains_outside_the_collapsed_form(self):
+        from html.parser import HTMLParser
+
+        class FormParser(HTMLParser):
+            inside_form = False
+            status_inside = None
+
+            def handle_starttag(self, tag, attrs):
+                if tag == 'form':
+                    self.inside_form = True
+                if dict(attrs).get('id') == 'barcode-status':
+                    self.status_inside = self.inside_form
+
+            def handle_endtag(self, tag):
+                if tag == 'form':
+                    self.inside_form = False
+
+        response = self.client.get('/codigo-barras/')
+        parser = FormParser()
+        parser.feed(response.content.decode())
+        self.assertIs(parser.status_inside, False)
+        self.assertContains(response, 'aria-live="polite"')
+        self.assertContains(response, 'id="barcode-results"')
+
+    def test_html_lookup_renders_matching_visual_state_without_javascript(self):
+        for code, state, title in [('789123', 'found', 'Item encontrado'), ('unknown', 'missing', 'Código não encontrado')]:
+            with self.subTest(code=code):
+                response = self.client.get('/codigo-barras/', {'codigo': code})
+                self.assertContains(response, f'data-state="{state}"')
+                self.assertContains(response, f'<h2 id="barcode-heading">{title}</h2>', html=True)
+                self.assertContains(response, f'value="{code}"')

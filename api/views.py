@@ -42,7 +42,23 @@ class ItemViewSet(viewsets.ModelViewSet):
             response = self.get_paginated_response(self.get_serializer(page, many=True).data)
             response.data.update(tipo_codigo='ean', produto=ProdutoSerializer(produto).data)
             return response
-        return Response({'erro': {'codigo': 'nao_encontrado', 'detalhes': 'Codigo desconhecido.'}}, status=404)
+        from acervo.barcode_flow import consultar_metadados, cadastro_manual_url, codigo_comercial, validar_consulta
+        from django.core.exceptions import ValidationError
+        from usuarios.permissions import permitido
+        codigo = codigo.strip()
+        modo = request.query_params.get('modo', 'auto')
+        try:
+            validar_consulta(codigo, modo)
+        except ValidationError:
+            return Response({'erro': {'codigo': 'invalido', 'detalhes': 'Informe um código de até 40 caracteres, sem espaços, e um modo válido.'}}, status=400)
+        if request.query_params.get('metadados') == '1':
+            if not permitido(request.user, 'editar_acervo'):
+                return Response({'detail': 'Sem permissão para consultar metadados.'}, status=403)
+            data, status = consultar_metadados(codigo, modo, request.user)
+            return Response(data, status=status)
+        return Response({'erro': {'codigo': 'nao_encontrado', 'detalhes': 'Código não encontrado no acervo local.'},
+            'metadados_disponiveis': codigo_comercial(codigo, modo) and permitido(request.user, 'editar_acervo'),
+            'cadastro_url': cadastro_manual_url(codigo, modo)}, status=404)
 
 
 

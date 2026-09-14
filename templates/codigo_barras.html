@@ -1,39 +1,62 @@
 {% extends 'base.html' %}
-{% block titulo_pagina %}Código interno ou EAN/UPC{% endblock %}
+{% load static %}
+{% block titulo_pagina %}Código de barras{% endblock %}
+{% block descricao_pagina %}Leitura por scanner físico ou código digitado manualmente{% endblock %}
+{% block classe_pagina %}pagina-codigo{% endblock %}
+{% block css_adicional %}<link rel="stylesheet" href="{% static 'css/codigo-barras.css' %}">{% endblock %}
 {% block conteudo %}
-<div class="pagina-simples">
-<section class="card busca-codigo">
-<p>Leitor em modo teclado com Enter ao final. No modo automático, o código interno tem prioridade.</p>
-<form method="get" action="{% url 'codigo_barras' %}" class="linha-formulario" data-barcode-form
+<div class="leitura-pagina">
+<div class="leitura-orientacao">
+    <ol class="leitura-etapas" aria-label="Orientação do processo de consulta e cadastro">
+        <li id="barcode-step-1" data-state="{% if codigo %}complete{% else %}active{% endif %}" aria-current="{% if codigo %}false{% else %}step{% endif %}"><span>1</span> Ler código</li>
+        <li id="barcode-step-2" data-state="{% if codigo %}complete{% else %}inactive{% endif %}"><span>2</span> Buscar info</li>
+        <li id="barcode-step-3" data-state="{% if codigo %}active{% else %}inactive{% endif %}" aria-current="{% if codigo %}step{% else %}false{% endif %}"><span>3</span> Conferir dados</li>
+        <li id="barcode-step-4" data-state="inactive"><span>4</span> Cadastrar</li>
+    </ol>
+    <p class="leitura-somente-leitor">Consulte o acervo, confira os dados e cadastre uma nova cópia quando necessário. A busca externa é opcional.</p>
+</div>
+<form method="get" action="{% url 'codigo_barras' %}" class="card leitura-card" data-barcode-form
+      data-state="{% if item or produto %}found{% elif codigo %}missing{% else %}idle{% endif %}"
       data-api-url="{% url 'api:exemplar-por-codigo' codigo='CODIGO' %}"
       data-detail-url="{% url 'acervo:detalhe' pk=0 %}"
       data-create-url="{% url 'acervo:cadastrar' %}"
+      data-catalog-url="{% url 'acervo:lista' %}"
       data-metadata-url="{% url 'acervo:metadados' %}">
-<label for="codigo">Código</label><input id="codigo" type="search" name="codigo" value="{{ codigo }}" data-barcode autofocus autocomplete="off" aria-describedby="barcode-status">
-<label for="modo">Interpretar como</label><select id="modo" name="modo">
+<div class="leitura-icone" aria-hidden="true"><svg data-lucide="scan-barcode"></svg></div>
+<h2 id="barcode-heading">{% if item or produto %}Item encontrado{% elif codigo %}Código não encontrado{% else %}Aguardando leitura{% endif %}</h2>
+<p id="leitura-instrucao">Posicione o cursor no campo abaixo e escaneie o item.</p>
+<div class="leitura-campo">
+<label for="codigo">Código interno ou EAN/UPC</label>
+<input id="codigo" type="search" name="codigo" value="{{ codigo }}" data-barcode autofocus autocomplete="off" placeholder="O leitor preencherá este campo automaticamente…" aria-describedby="leitura-instrucao barcode-status">
+</div>
+<div class="leitura-modo"><label for="modo">Interpretar como</label><select id="modo" name="modo" aria-describedby="leitura-modo-ajuda">
 <option value="auto" {% if modo == 'auto' %}selected{% endif %}>Automático</option>
 <option value="interno" {% if modo == 'interno' %}selected{% endif %}>Código interno</option>
 <option value="ean" {% if modo == 'ean' %}selected{% endif %}>EAN/UPC</option>
-</select><button class="btn btn-primaria">Consultar</button>
-<button type="submit" name="consulta_html" value="1" class="btn btn-secundaria">Consultar em página completa</button></form>
-<p id="barcode-status" role="status" aria-live="polite" aria-atomic="true"></p>
-</section>
+</select></div>
+<p id="leitura-modo-ajuda" class="leitura-ajuda">No modo automático, o código interno tem prioridade.</p>
+<div class="leitura-acoes"><button type="submit" class="btn btn-primaria"><svg data-lucide="search" aria-hidden="true"></svg> Buscar código</button>
+<button type="submit" name="consulta_html" value="1" class="leitura-completa">Consultar em página completa →</button>
+<button type="button" id="barcode-new-scan" class="btn btn-secundaria" hidden>Nova leitura</button></div>
+</form>
+<p id="barcode-status" role="status" aria-live="polite" aria-atomic="true" class="leitura-status"></p>
 <div id="barcode-results" role="region" aria-label="Resultado da consulta de código" aria-busy="false">
 {% if item %}
-<section class="card"><h2>Exemplar {{ item.codigo_interno }}</h2><p>{{ item.produto }} · {{ item.get_status_display }}</p><a href="{% url 'acervo:detalhe' item.pk %}">Abrir exemplar</a></section>
+<section class="card leitura-encontrado"><h2 class="leitura-sucesso-titulo">Item identificado com sucesso</h2><div class="leitura-produto leitura-produto-acervo"><span class="leitura-capa-placeholder" role="img" aria-label="Capa não disponível"></span><div class="leitura-produto-info"><h3>{{ item.produto.titulo }}</h3>{% if item.produto.artista_diretor %}<p>{{ item.produto.artista_diretor }}</p>{% endif %}<div class="leitura-badges"><span>{{ item.produto.tipo }}</span>{% if item.produto.ano %}<span>{{ item.produto.ano }}</span>{% endif %}{% if item.produto.categoria.nome %}<span>{{ item.produto.categoria.nome }}</span>{% endif %}</div><code>{% if item.produto.ean %}{{ item.produto.ean }}{% else %}{{ item.codigo_interno }}{% endif %}</code></div></div><p class="leitura-status-acervo">Item localizado no acervo · Status: {{ item.get_status_display }}</p><div class="leitura-result-acoes"><a class="btn btn-secundaria leitura-reset" href="{% url 'codigo_barras' %}">Nova leitura</a><a class="btn btn-primaria" href="{% url 'acervo:detalhe' item.pk %}">Ver no acervo</a></div></section>
 {% elif produto %}
-<section class="card"><h2>{{ produto }}</h2><p>EAN/UPC: {{ produto.ean }}</p>
-{% if not disponiveis %}<p>Nenhum exemplar disponível. Você pode cadastrar uma nova unidade.</p>{% endif %}
-<a href="{% url 'acervo:cadastrar' %}?produto={{ produto.pk }}">Cadastrar exemplar deste produto</a>
-<ul>{% for exemplar in exemplares %}<li><a href="{% url 'acervo:detalhe' exemplar.pk %}">{{ exemplar.codigo_interno }}</a> · {{ exemplar.get_estado_conservacao_display }} · {{ exemplar.get_status_display }} · R$ {{ exemplar.preco|default_if_none:"—" }}</li>{% empty %}<li>Nenhum exemplar cadastrado.</li>{% endfor %}</ul>
-{% include 'paginacao.html' %}
-</section>
+<section class="card leitura-encontrado"><h2 class="leitura-sucesso-titulo">Item identificado com sucesso</h2><div class="leitura-produto leitura-produto-acervo"><span class="leitura-capa-placeholder" role="img" aria-label="Capa não disponível"></span><div class="leitura-produto-info"><h3>{{ produto.titulo }}</h3>{% if produto.artista_diretor %}<p>{{ produto.artista_diretor }}</p>{% endif %}<div class="leitura-badges"><span>{{ produto.tipo }}</span>{% if produto.ano %}<span>{{ produto.ano }}</span>{% endif %}{% if produto.categoria.nome %}<span>{{ produto.categoria.nome }}</span>{% endif %}</div>{% if produto.ean %}<code>{{ produto.ean }}</code>{% endif %}</div></div><p class="leitura-status-acervo">Item localizado no acervo · Status: {% if exemplares %}{{ exemplares.0.get_status_display }}{% else %}Nenhum exemplar cadastrado{% endif %}</p><div class="leitura-result-acoes"><a class="btn btn-secundaria leitura-reset" href="{% url 'codigo_barras' %}">Nova leitura</a><a class="btn btn-primaria" href="{% url 'acervo:lista' %}">Ver no acervo</a></div></section>
 {% elif codigo %}
-<section class="card"><h2>Código desconhecido</h2><p>{{ codigo }}</p>
-<a href="{% url 'acervo:metadados' %}?ean={{ codigo|urlencode }}&fonte=musicbrainz">Pesquisar CD por EAN</a> ·
-<a href="{% url 'acervo:metadados' %}?fonte=movies">Pesquisar filme por título</a> ·
-<a href="{% url 'acervo:cadastrar' %}">Cadastrar manualmente</a></section>
+<section class="card leitura-nao-encontrado"><h2 class="leitura-erro-titulo">Código não encontrado no sistema</h2><div class="leitura-codigo-consultado"><span class="leitura-codigo-icone" aria-hidden="true"></span><div><strong>{{ codigo }}</strong><p>Nenhum produto cadastrado com este código</p></div></div><div class="leitura-nao-cadastrado"><strong>Produto não cadastrado</strong><p>Você pode cadastrar este item manualmente informando os dados do produto. O código de barras será preenchido automaticamente.</p></div><div class="leitura-result-acoes"><a class="btn btn-secundaria leitura-reset" href="{% url 'codigo_barras' %}">Nova leitura</a><a class="btn btn-primaria" href="{% url 'acervo:cadastrar' %}?codigo={{ codigo|urlencode }}&amp;modo={{ modo|urlencode }}&amp;origem=barcode">Cadastrar este item</a></div></section>
 {% endif %}
 </div>
+<noscript><a href="{% url 'codigo_barras' %}">Nova leitura</a></noscript>
+<section class="card leitura-como-usar" aria-labelledby="leitura-como-titulo">
+    <h2 id="leitura-como-titulo">COMO USAR</h2>
+    <ol>
+        <li>O leitor físico funciona como teclado: posicione o cursor no campo e escaneie o código. Configure o leitor para enviar Enter ao final.</li>
+        <li>Também é possível digitar um código manualmente e pressionar Enter para iniciar a busca.</li>
+        <li>O sistema consulta o código interno ou EAN/UPC conforme o modo selecionado. Confira os resultados antes de cadastrar uma nova cópia.</li>
+    </ol>
+</section>
 </div>
 {% endblock %}
