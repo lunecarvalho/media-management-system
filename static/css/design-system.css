@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
 /* ==============================================
    MEDIATRACK - DESIGN SYSTEM & GLOBAL STYLES
    ============================================== */
@@ -38,8 +40,8 @@
   --sombra-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
   
   /* Tipografia */
-  --fonte-principal: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --fonte-mono: 'DM Mono', 'Courier New', Courier, monospace;
+  --fonte-principal: 'Outfit', system-ui, sans-serif;
+  --fonte-mono: 'DM Mono', ui-monospace, monospace;
 }
 
 /* Reset e Estilos Globais */
@@ -136,7 +138,7 @@ a:hover {
   padding: var(--espacamento-sm) var(--espacamento-md);
   border: none;
   border-radius: var(--raio-md);
-  font-family: var(--fonte-principal);
+  font-family: inherit;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
@@ -216,7 +218,7 @@ a:hover {
 input,
 textarea,
 select {
-  font-family: var(--fonte-principal);
+  font-family: inherit;
   background-color: var(--cor-card);
   color: var(--cor-texto-principal);
   border: 1px solid var(--cor-borda);
@@ -308,7 +310,7 @@ label {
   border-radius: var(--raio-sm);
   font-size: 0.75rem;
   font-weight: 600;
-  font-family: var(--fonte-principal);
+  font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -605,3 +607,6 @@ button svg[data-lucide] {
   width: 24px;
   height: 24px;
 }
+
+/* Controles nativos acompanham a tipografia da página. */
+button, input, select, textarea { font-family: inherit; }

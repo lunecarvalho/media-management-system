@@ -43,7 +43,7 @@ class Element {
     select() { this.selectCalls += 1; this.selected = true; }
 }
 
-function setup({legacy = false} = {}) {
+function setup({legacy = false, animation = false} = {}) {
     const input = new Element('input');
     const form = new Element('form');
     form.dataset = {apiUrl: '/api/exemplares/codigo/CODIGO/', detailUrl: '/acervo/item/0/',
@@ -53,25 +53,34 @@ function setup({legacy = false} = {}) {
     form.elements = {modo: mode};
     const results = new Element();
     const status = new Element();
+    const heading = new Element('h2');
+    heading.textContent = 'Aguardando leitura';
+    const steps = [1, 2, 3, 4].map(() => new Element('li'));
+    const newScan = new Element('button');
+    newScan.hidden = true;
     const shell = legacy ? {'menu-toggler': new Element('button'), sidebar: new Element('aside'),
         'data-atual': new Element('span'), 'contador-acervo': new Element('span')} : {};
     const requests = [];
     const timers = new Map();
     let timerId = 0;
+    const frames = new Map();
+    let frameId = 0;
     const fetch = (url, options) => new Promise((resolve, reject) => requests.push({url, options, resolve, reject}));
     const document = {
         activeElement: null,
         listeners: {},
         addEventListener(name, callback) { (this.listeners[name] ||= []).push(callback); },
         emit(name, event = {}) { for (const callback of this.listeners[name] || []) callback(event); },
-        getElementById: id => ({'barcode-results': results, 'barcode-status': status, ...shell}[id] || null),
+        getElementById: id => ({'barcode-results': results, 'barcode-status': status, 'barcode-heading': heading,
+            'barcode-new-scan': newScan, ...Object.fromEntries(steps.map((node, i) => [`barcode-step-${i + 1}`, node])), ...shell}[id] || null),
         querySelector: selector => ({'[data-barcode]': input, '[data-barcode-form]': form}[selector] || null),
         createElement(tag) { const node = new Element(tag); node.ownerDocument = this; return node; },
         createTextNode: text => { const node = new Element('#text'); node.textContent = text; return node; },
     };
-    for (const node of [input, form, mode, results, status, ...Object.values(shell)]) node.ownerDocument = document;
-    vm.runInNewContext(source, {document, fetch, URL, Intl, AbortController, TypeError, SyntaxError,
+    for (const node of [input, form, mode, results, status, heading, newScan, ...steps, ...Object.values(shell)]) node.ownerDocument = document;
+    vm.runInNewContext(source, {document, fetch, URL, Intl, AbortController, DOMException, TypeError, SyntaxError,
         window: {fetch, AbortController, location: {href: 'http://localhost/codigo-barras/'},
+            ...(animation ? {requestAnimationFrame: callback => { frames.set(++frameId, callback); return frameId; }, cancelAnimationFrame: id => frames.delete(id)} : {}),
             setTimeout: callback => { timers.set(++timerId, callback); return timerId; },
             clearTimeout: id => timers.delete(id)}});
     document.emit('DOMContentLoaded');
@@ -88,13 +97,298 @@ function setup({legacy = false} = {}) {
         input.selected = false;
         input.listeners.input?.();
     };
-    return {input, form, mode, document, results, status, requests, timers, submit, type, shell};
+    const paintFrame = () => { const entries = [...frames.values()]; frames.clear(); entries.forEach(callback => callback()); };
+    return {input, form, mode, document, results, status, heading, requests, timers, submit, type, shell, steps, newScan, paintFrame};
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
 const respond = (request, data, status = 200) => request.resolve({status, ok: status < 400, json: async () => data});
 const item = (code = 'MT1') => ({id: 7, codigo_interno: code, status: 'disponivel',
     estado_conservacao: 'bom', preco: '0.00', produto_detalhe: {titulo: '<img src=x onerror=alert(1)>', tipo: 'DVD'}});
 const descendants = node => [node, ...node.children.flatMap(descendants)];
+const currentStep = ui => ui.steps.findIndex(node => node.attributes['aria-current'] === 'step') + 1;
+const actionNamed = (ui, text) => descendants(ui.results).find(node => node.textContent === text && ['button', 'a'].includes(node.tag));
+const externalEdition = (title = 'Edição real') => ({tipo: 'CD', titulo: title, ean: '7891234567895',
+    artista_diretor: 'Autor', cadastro_url: '/acervo/cadastrar/?leitura=opaque-token&codigo=7891234567895&modo=ean'});
+
+test('only one main card is presented from loading to external success and reset', async () => {
+    const ui = setup();
+    assert.equal(ui.form.attributes['data-presentation'], 'entry');
+    ui.submit('7891234567895');
+    assert.equal(ui.form.attributes['data-presentation'], 'collapsed');
+    assert.equal(ui.results.children.length, 1);
+    assert.match(ui.results.textContent, /Buscando informações/);
+    assert.match(ui.results.textContent, /7891234567895/);
+    assert.equal(descendants(ui.results).some(node => ['input', 'button', 'a', 'form'].includes(node.tag)), false);
+    respond(ui.requests[0], {tipo_codigo: 'externo', fonte: 'MusicBrainz', results: [{...externalEdition('Título retornado'), ano: 2005}]});
+    await flush();
+    assert.equal(ui.form.attributes['data-presentation'], 'collapsed');
+    assert.equal(ui.results.children.length, 1);
+    assert.match(ui.results.textContent, /Título retornado/);
+    assert.match(ui.results.textContent, /2005/);
+    assert.doesNotMatch(ui.results.textContent, /Buscando|The Wall|Pink Floyd/);
+    assert.equal(descendants(ui.results).some(node => node.tag === 'img'), false);
+    assert.ok(descendants(ui.results).some(node => node.attributes['aria-label'] === 'Capa não disponível'));
+    assert.ok(actionNamed(ui, 'Cadastrar item'));
+    assert.equal(currentStep(ui), 4);
+    assert.equal(ui.steps.slice(0, 3).every(step => step.attributes['data-state'] === 'complete'), true);
+    actionNamed(ui, 'Nova leitura').listeners.click();
+    assert.equal(currentStep(ui), 1);
+    assert.equal(ui.form.attributes['data-presentation'], 'entry');
+    assert.equal(ui.results.children.length, 0);
+    assert.equal(ui.document.activeElement, ui.input);
+});
+
+test('local and missing states replace loading without claiming a local item is absent', async () => {
+    const ui = setup();
+    ui.submit('MT1');
+    respond(ui.requests[0], item());
+    await flush();
+    assert.equal(ui.results.children.length, 1);
+    assert.match(ui.results.textContent, /Item identificado com sucesso/);
+    assert.match(ui.results.textContent, /Item localizado no acervo/);
+    assert.equal(ui.form.attributes['data-presentation'], 'collapsed');
+    ui.submit('UNKNOWN');
+    assert.doesNotMatch(ui.results.textContent, /Item encontrado no acervo/);
+    respond(ui.requests[1], {erro: {codigo: 'nao_encontrado'}}, 404);
+    await flush();
+    assert.equal(ui.results.children.length, 1);
+    assert.match(ui.results.textContent, /Código não encontrado/);
+    assert.equal(ui.form.attributes['data-presentation'], 'collapsed');
+    assert.ok(actionNamed(ui, 'Nova leitura'));
+});
+
+test('found state renders real product data, status and only archive action', async () => {
+    const ui = setup();
+    ui.submit('MT1');
+    respond(ui.requests[0], {id: 7, codigo_interno: 'MT1', status: 'reservado',
+        produto_detalhe: {titulo: 'Título real', artista_diretor: 'Pessoa real', tipo: 'CD', ano: 2008,
+            categoria_nome: 'Jazz', ean: '789123'}});
+    await flush();
+    assert.match(ui.results.textContent, /Título real/);
+    assert.match(ui.results.textContent, /Pessoa real/);
+    assert.match(ui.results.textContent, /2008/);
+    assert.match(ui.results.textContent, /Jazz/);
+    assert.match(ui.results.textContent, /789123/);
+    assert.match(ui.results.textContent, /Status: Reservado/);
+    assert.ok(actionNamed(ui, 'Ver no acervo'));
+    assert.equal(actionNamed(ui, 'Cadastrar este item'), undefined);
+    assert.equal(currentStep(ui), 4);
+});
+
+test('loading gets a browser paint opportunity before starting fetch', async () => {
+    const ui = setup({animation: true});
+    ui.submit('MT1');
+    assert.equal(currentStep(ui), 2);
+    assert.match(ui.results.textContent, /Buscando informações/);
+    assert.equal(ui.requests.length, 0);
+    ui.paintFrame();
+    assert.equal(ui.requests.length, 0);
+    ui.paintFrame();
+    await flush();
+    assert.equal(ui.requests.length, 1);
+    respond(ui.requests[0], item());
+    await flush();
+    assert.match(ui.results.textContent, /Item identificado com sucesso/);
+});
+
+test('cancelling during paint does not launch a stale request', async () => {
+    const ui = setup({animation: true});
+    ui.submit('MT1');
+    ui.newScan.listeners.click();
+    ui.paintFrame();
+    ui.paintFrame();
+    await flush();
+    assert.equal(ui.requests.length, 0);
+    assert.equal(currentStep(ui), 1);
+    assert.equal(ui.form.attributes['data-presentation'], 'entry');
+    assert.equal(ui.results.children.length, 0);
+});
+
+test('new scanner input reveals entry and aborts the old lookup before it can hide the new code', async () => {
+    const ui = setup();
+    ui.submit('123');
+    ui.type('1');
+    assert.equal(ui.form.attributes['data-presentation'], 'entry');
+    assert.equal(ui.requests[0].options.signal.aborted, true);
+    ui.type('123');
+    respond(ui.requests[0], item('123'));
+    await flush();
+    assert.equal(ui.form.attributes['data-presentation'], 'entry');
+    assert.equal(ui.results.children.length, 0);
+    ui.type('123456');
+    assert.equal(ui.input.value, '123456');
+});
+async function startExternal(ui) {
+    ui.submit('7891234567895');
+    respond(ui.requests.at(-1), {erro: {codigo: 'nao_encontrado'}, metadados_disponiveis: true}, 404);
+    await flush();
+    const button = actionNamed(ui, 'Buscar informações de CD no MusicBrainz');
+    button.focus();
+    button.listeners.click();
+}
+
+test('stepper follows local lookup and never searches externally without an explicit action', async () => {
+    const ui = setup();
+    assert.equal(currentStep(ui), 1);
+    assert.equal(ui.newScan.hidden, false);
+    ui.submit('MT1');
+    assert.equal(currentStep(ui), 2);
+    assert.equal(ui.steps[0].attributes['data-state'], 'complete');
+    assert.equal(ui.requests[0].url.searchParams.has('metadados'), false);
+    respond(ui.requests[0], item());
+    await flush();
+    assert.equal(currentStep(ui), 4);
+    assert.match(ui.results.textContent, /Item localizado no acervo/);
+    assert.equal(ui.requests.length, 1);
+    ui.submit('7891234567895');
+    respond(ui.requests[1], {erro: {codigo: 'nao_encontrado'}, metadados_disponiveis: true}, 404);
+    await flush();
+    assert.equal(ui.requests.length, 2);
+    assert.ok(actionNamed(ui, 'Buscar informações de CD no MusicBrainz'));
+    assert.match(ui.results.textContent, /Buscar informações de CD no MusicBrainz/);
+});
+
+test('explicit metadata lookup goes through review to the real registration URL', async () => {
+    const ui = setup();
+    await startExternal(ui);
+    assert.equal(currentStep(ui), 2);
+    assert.equal(ui.requests[1].url.searchParams.get('metadados'), '1');
+    assert.equal(ui.requests[1].options.credentials, 'same-origin');
+    assert.equal(ui.document.activeElement, ui.results);
+    respond(ui.requests[1], {tipo_codigo: 'externo', fonte: 'MusicBrainz', results: [externalEdition()]});
+    await flush();
+    assert.equal(currentStep(ui), 4);
+    assert.match(ui.results.textContent, /ainda não está no acervo/);
+    assert.equal(ui.document.activeElement, ui.results);
+    const register = actionNamed(ui, 'Cadastrar item');
+    const url = new URL(register.href);
+    assert.equal(url.pathname, '/acervo/cadastrar/');
+    assert.equal(url.searchParams.get('leitura'), 'opaque-token');
+    assert.equal(url.searchParams.get('origem'), 'barcode');
+    register.listeners.click();
+    assert.equal(currentStep(ui), 4);
+    assert.equal(ui.requests.length, 2);
+});
+
+test('ambiguous editions require explicit selection before registration', async () => {
+    const ui = setup();
+    await startExternal(ui);
+    respond(ui.requests[1], {tipo_codigo: 'externo', fonte: 'MusicBrainz', results: [externalEdition('Primeira'), externalEdition('Segunda')]});
+    await flush();
+    assert.equal(ui.heading.textContent, 'Selecione uma edição');
+    assert.equal(actionNamed(ui, 'Cadastrar item'), undefined);
+    const buttons = descendants(ui.results).filter(node => node.tag === 'button');
+    buttons[1].focus();
+    buttons[1].listeners.click();
+    assert.match(ui.results.textContent, /Segunda/);
+    assert.doesNotMatch(ui.results.textContent, /Primeira/);
+    assert.equal(ui.heading.textContent, 'Item identificado com sucesso');
+    assert.ok(actionNamed(ui, 'Cadastrar item'));
+    assert.equal(ui.document.activeElement, ui.results);
+    actionNamed(ui, 'Voltar às opções').listeners.click();
+    assert.equal(actionNamed(ui, 'Cadastrar item'), undefined);
+    assert.equal(ui.heading.textContent, 'Selecione uma edição');
+});
+
+test('new scan cancels external request and late response cannot restore results or stepper', async () => {
+    const ui = setup();
+    await startExternal(ui);
+    const old = ui.requests[1];
+    ui.newScan.focus();
+    ui.newScan.listeners.click();
+    assert.equal(old.options.signal.aborted, true);
+    assert.equal(ui.input.value, '');
+    assert.equal(ui.status.textContent, '');
+    assert.equal(ui.results.textContent, '');
+    assert.equal(ui.results.attributes['aria-busy'], 'false');
+    assert.equal(currentStep(ui), 1);
+    assert.equal(ui.document.activeElement, ui.input);
+    const selections = ui.input.selectCalls;
+    respond(old, {tipo_codigo: 'externo', fonte: 'MusicBrainz', results: [externalEdition()]});
+    await flush();
+    assert.equal(currentStep(ui), 1);
+    assert.equal(ui.results.textContent, '');
+    assert.equal(ui.input.selectCalls, selections);
+});
+
+test('old metadata success cannot replace a newer local result or its registration target', async () => {
+    const ui = setup();
+    await startExternal(ui);
+    ui.submit('NEW');
+    respond(ui.requests[2], item('NEW'));
+    await flush();
+    respond(ui.requests[1], {tipo_codigo: 'externo', fonte: 'MusicBrainz', results: [externalEdition('Obsoleta')]});
+    await flush();
+    assert.match(ui.results.textContent, /NEW/);
+    assert.doesNotMatch(ui.results.textContent, /Obsoleta/);
+    assert.equal(currentStep(ui), 4);
+    assert.equal(actionNamed(ui, 'Cadastrar item'), undefined);
+});
+
+test('metadata failures and timeout retain code and offer explicit retry or new scan', async () => {
+    for (const kind of ['provider', 'network', 'timeout', 'invalid', 'empty']) {
+        const ui = setup();
+        await startExternal(ui);
+        if (kind === 'provider') respond(ui.requests[1], {erro: {codigo: 'fonte_indisponivel', detalhes: 'Fonte indisponível'}}, 502);
+        else if (kind === 'network') ui.requests[1].reject(new TypeError('offline'));
+        else if (kind === 'timeout') ui.requests[1].reject(new DOMException('timeout', 'AbortError'));
+        else if (kind === 'invalid') respond(ui.requests[1], {tipo_codigo: 'externo', results: [{}]});
+        else respond(ui.requests[1], {erro: {codigo: 'nao_encontrado'}}, 404);
+        await flush();
+        assert.equal(ui.input.value, '7891234567895');
+        assert.equal(currentStep(ui), kind === 'empty' ? 3 : 1);
+        assert.equal(ui.results.attributes['aria-busy'], 'false');
+        const retry = actionNamed(ui, 'Tentar MusicBrainz novamente');
+        assert.ok(retry, kind);
+        retry.listeners.click();
+        assert.equal(currentStep(ui), 2);
+        assert.equal(ui.requests.length, 3);
+        ui.newScan.listeners.click();
+        assert.equal(currentStep(ui), 1);
+    }
+});
+
+test('metadata never renders an executable or foreign registration URL', async () => {
+    for (const path of ['javascript:alert(1)', 'https://evil.example/acervo/cadastrar/', '/usuarios/']) {
+        const ui = setup();
+        await startExternal(ui);
+        respond(ui.requests[1], {tipo_codigo: 'externo', fonte: 'MusicBrainz', results: [{...externalEdition(), cadastro_url: path}]});
+        await flush();
+        assert.equal(actionNamed(ui, 'Cadastrar item'), undefined);
+        assert.equal(currentStep(ui), 1);
+        assert.match(ui.status.textContent, /inválido/);
+    }
+});
+
+test('duplicate pending lookup is suppressed but mode or code changes start a new request', async () => {
+    const ui = setup();
+    ui.submit('7891234567895');
+    ui.submit('7891234567895');
+    assert.equal(ui.requests.length, 1);
+    ui.mode.value = 'ean';
+    ui.submit('7891234567895');
+    assert.equal(ui.requests.length, 2);
+    assert.equal(ui.requests[0].options.signal.aborted, true);
+    ui.submit('MT1');
+    assert.equal(ui.requests.length, 3);
+    assert.equal(ui.requests[1].options.signal.aborted, true);
+});
+
+test('manual registration preserves the queried code and mode even after input changes', async () => {
+    const ui = setup();
+    ui.mode.value = 'interno';
+    ui.submit('MT-55');
+    ui.mode.value = 'ean';
+    respond(ui.requests[0], {erro: {codigo: 'nao_encontrado'}, metadados_disponiveis: false}, 404);
+    await flush();
+    const action = actionNamed(ui, 'Cadastrar este item');
+    const url = new URL(action.href);
+    assert.equal(url.searchParams.get('codigo'), 'MT-55');
+    assert.equal(url.searchParams.get('modo'), 'interno');
+    assert.equal(actionNamed(ui, 'Buscar informações de CD no MusicBrainz'), undefined);
+    action.listeners.click();
+    assert.equal(currentStep(ui), 4);
+});
 
 test('internal lookup uses session GET, safely renders text and restores focus', async () => {
     const ui = setup();
@@ -159,7 +453,7 @@ test('EAN without copies and unknown code have useful results', async () => {
     respond(ui.requests[1], {erro: {codigo: 'nao_encontrado'}}, 404);
     await flush();
     assert.match(ui.status.textContent, /não encontrado/);
-    assert.match(ui.results.textContent, /Cadastrar manualmente/);
+    assert.match(ui.results.textContent, /Cadastrar este item/);
     assert.ok(ui.input.focused && ui.input.selected);
 });
 
@@ -354,4 +648,41 @@ test('menu, counter, date and original focus behavior continue working together'
     await flush();
     assert.equal(failure.shell['contador-acervo'].textContent, '—');
     assert.equal(failure.shell['contador-acervo'].title, 'Contagem indisponível');
+});
+
+test('reading card reflects actual lookup outcomes without changing focus rules', async () => {
+    for (const outcome of ['found', 'missing', 'error', 'timeout']) {
+        const ui = setup();
+        assert.equal(ui.heading.textContent, 'Aguardando leitura');
+        ui.submit('MT1');
+        assert.equal(ui.form.attributes['data-state'], 'loading');
+        assert.match(ui.heading.textContent, /Buscando/);
+        ui.mode.focus();
+        if (outcome === 'found') respond(ui.requests[0], item());
+        if (outcome === 'missing') respond(ui.requests[0], {erro: {codigo: 'nao_encontrado'}}, 404);
+        if (outcome === 'error') respond(ui.requests[0], {}, 500);
+        if (outcome === 'timeout') {
+            [...ui.timers.values()][0]();
+            ui.requests[0].reject({name: 'AbortError'});
+        }
+        await flush();
+        assert.equal(ui.form.attributes['data-state'], outcome);
+        assert.doesNotMatch(ui.heading.textContent, /Buscando/);
+        assert.equal(ui.document.activeElement, ui.mode);
+        ui.submit('');
+        assert.equal(ui.form.attributes['data-state'], 'idle');
+        assert.equal(ui.heading.textContent, 'Aguardando leitura');
+    }
+});
+
+test('obsolete responses cannot replace the latest visual state', async () => {
+    const ui = setup();
+    ui.submit('MT1');
+    ui.submit('MT2');
+    respond(ui.requests[1], item('MT2'));
+    await flush();
+    ui.requests[0].reject({name: 'AbortError'});
+    await flush();
+    assert.equal(ui.form.attributes['data-state'], 'found');
+    assert.equal(ui.heading.textContent, 'Item encontrado');
 });

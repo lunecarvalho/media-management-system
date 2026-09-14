@@ -7,7 +7,6 @@
     <title>{% block titulo %}MediaTrack - Acervo Físico{% endblock %}</title>
     
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
     
     <!-- Lucide Icons -->
     <script defer src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
@@ -18,7 +17,7 @@
     <link rel="stylesheet" href="{% static 'css/dashboard-fixed.css' %}">
     {% block css_adicional %}{% endblock %}
 </head>
-<body>
+<body class="{% block classe_pagina %}{% endblock %}">
     <div class="layout">
         <!-- SIDEBAR -->
         <aside class="sidebar" id="sidebar">
@@ -40,13 +39,13 @@
                     <span>Dashboard</span>
                 </a>
                 
-                <a href="{% url 'acervo:lista' %}" class="menu-item {% if request.resolver_match.app_names.0 == 'acervo' %}ativo{% endif %}">
+                <a href="{% url 'acervo:lista' %}" class="menu-item {% if request.resolver_match.app_names.0 == 'acervo' and request.resolver_match.url_name != 'cadastrar' %}ativo{% endif %}">
                     <span class="menu-icone"><svg data-lucide="archive"></svg></span>
                     <span>Acervo</span>
                     <span class="menu-contador" id="contador-acervo">0</span>
                 </a>
                 
-                <a href="{% url 'acervo:cadastrar' %}" class="menu-item">
+                <a href="{% url 'acervo:cadastrar' %}" class="menu-item {% if request.resolver_match.view_name == 'acervo:cadastrar' %}ativo{% endif %}">
                     <span class="menu-icone"><svg data-lucide="plus-circle"></svg></span>
                     <span>Cadastrar item</span>
                 </a>

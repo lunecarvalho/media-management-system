@@ -330,6 +330,33 @@
   margin: 0;
 }
 
+.cadastro-item .cadastro-secao {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.cadastro-item .cadastro-secao + .cadastro-secao {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--cor-borda);
+}
+.cadastro-item .cadastro-secao > p { margin: 8px 0 16px; }
+.cadastro-item fieldset.cadastro-escolha {
+  border: none;
+  padding: 0;
+  margin: 16px 0;
+  min-width: 0;
+}
+.cadastro-item .cadastro-escolha legend { margin-bottom: 8px; }
+.cadastro-item .cadastro-escolha label { display: inline-flex; align-items: center; gap: 8px; margin: 0 20px 8px 0; cursor: pointer; }
+.cadastro-item .cadastro-escolha input { accent-color: var(--cor-primaria); }
+.cadastro-item :focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 3px; }
+.cadastro-item .formulario-acoes { gap: 12px; flex-wrap: wrap; }
+.cadastro-item [hidden] { display: none; }
+@media (max-width: 600px) {
+  .cadastro-item .formulario-grade { grid-template-columns: minmax(0, 1fr); }
+}
+
 .formulario-grade {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
