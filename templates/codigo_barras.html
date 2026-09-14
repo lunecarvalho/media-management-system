@@ -4,14 +4,21 @@
 <div class="pagina-simples">
 <section class="card busca-codigo">
 <p>Leitor em modo teclado com Enter ao final. No modo automático, o código interno tem prioridade.</p>
-<form method="get" class="linha-formulario">
-<label for="codigo">Código</label><input id="codigo" type="search" name="codigo" value="{{ codigo }}" data-barcode autofocus>
+<form method="get" action="{% url 'codigo_barras' %}" class="linha-formulario" data-barcode-form
+      data-api-url="{% url 'api:exemplar-por-codigo' codigo='CODIGO' %}"
+      data-detail-url="{% url 'acervo:detalhe' pk=0 %}"
+      data-create-url="{% url 'acervo:cadastrar' %}"
+      data-metadata-url="{% url 'acervo:metadados' %}">
+<label for="codigo">Código</label><input id="codigo" type="search" name="codigo" value="{{ codigo }}" data-barcode autofocus autocomplete="off" aria-describedby="barcode-status">
 <label for="modo">Interpretar como</label><select id="modo" name="modo">
 <option value="auto" {% if modo == 'auto' %}selected{% endif %}>Automático</option>
 <option value="interno" {% if modo == 'interno' %}selected{% endif %}>Código interno</option>
 <option value="ean" {% if modo == 'ean' %}selected{% endif %}>EAN/UPC</option>
-</select><button class="btn btn-primaria">Consultar</button></form>
+</select><button class="btn btn-primaria">Consultar</button>
+<button type="submit" name="consulta_html" value="1" class="btn btn-secundaria">Consultar em página completa</button></form>
+<p id="barcode-status" role="status" aria-live="polite" aria-atomic="true"></p>
 </section>
+<div id="barcode-results" role="region" aria-label="Resultado da consulta de código" aria-busy="false">
 {% if item %}
 <section class="card"><h2>Exemplar {{ item.codigo_interno }}</h2><p>{{ item.produto }} · {{ item.get_status_display }}</p><a href="{% url 'acervo:detalhe' item.pk %}">Abrir exemplar</a></section>
 {% elif produto %}
@@ -27,5 +34,6 @@
 <a href="{% url 'acervo:metadados' %}?fonte=movies">Pesquisar filme por título</a> ·
 <a href="{% url 'acervo:cadastrar' %}">Cadastrar manualmente</a></section>
 {% endif %}
+</div>
 </div>
 {% endblock %}
