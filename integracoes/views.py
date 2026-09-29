@@ -8,15 +8,14 @@ from acervo.forms import ProdutoForm
 from acervo.models import Produto
 from acervo.services import salvar_produto
 from .musicbrainz import pesquisar, FonteIndisponivel
-from .movies_dataset import pesquisar as pesquisar_filmes
+from .dvd_dataset import pesquisar as pesquisar_filmes
 
 class PesquisaForm(forms.Form):
     q = forms.CharField(label='Álbum ou título', required=False, max_length=200)
     artista = forms.CharField(required=False, max_length=200)
-    ean = forms.CharField(label='EAN/UPC (CD)', required=False, max_length=20)
-    fonte = forms.ChoiceField(choices=[('musicbrainz', 'MusicBrainz — CDs'), ('movies', 'Catálogo auxiliar de filmes')])
+    ean = forms.CharField(label='EAN/UPC', required=False, max_length=20)
+    fonte = forms.ChoiceField(choices=[('musicbrainz', 'MusicBrainz — CDs'), ('movies', 'Base local do grupo — DVDs')])
     ano = forms.IntegerField(required=False, min_value=1)
-    identificador = forms.CharField(label='ID externo (filmes)', required=False, max_length=100)
     externa = forms.BooleanField(label='Consultar fonte mesmo com produto local encontrado', required=False)
 
 
@@ -66,10 +65,55 @@ def metadados(request):
             locais = Produto.objects.filter(filtro)[:20]
         try:
             if produto or data['externa'] or not locais:
-                results = pesquisar(data['q'], data['artista'], data['ean']) if data['fonte'] == 'musicbrainz' else pesquisar_filmes(data['q'], data['ano'], data['identificador'])
+                if data['ean']:
+                    results = pesquisar_filmes(ean=data['ean'])
+                if not results:
+                    results = pesquisar(data['q'], data['artista'], data['ean']) if data['fonte'] == 'musicbrainz' else pesquisar_filmes(data['q'], data['ano'], data['ean'])
             choices = {uuid.uuid4().hex: row for row in results}
             request.session['metadados_escolhas'] = choices
         except FonteIndisponivel as exc:
+            choices = {}
+            request.session.pop('metadados_escolhas', None)
             erro = str(exc)
     return render(request, 'acervo/metadados.html', {'pesquisa': pesquisa, 'results': choices.items() if request.method == 'GET' else [],
         'erro': erro, 'product_form': product_form, 'escolha': choice_key, 'produto': produto, 'locais': locais})
+
+
+class BuscaCDForm(forms.Form):
+    codigo = forms.RegexField(r'^(?:[0-9]{8}|[0-9]{12}|[0-9]{13})$', widget=forms.HiddenInput)
+    titulo = forms.CharField(label='Título do álbum', required=False, max_length=200)
+    artista = forms.CharField(label='Artista', required=False, max_length=200)
+
+    def clean(self):
+        data = super().clean()
+        if max(sum(c.isalnum() for c in data.get(k, '')) for k in ('titulo', 'artista')) < 2:
+            raise forms.ValidationError('Informe um título ou artista com pelo menos dois caracteres úteis.')
+        return data
+
+
+def buscar_cd(request):
+    from acervo.barcode_flow import codigo_comercial, cadastro_manual_url, guardar_prefill
+    from acervo.models import Exemplar
+    codigo = request.GET.get('codigo', '').strip()
+    # Revalidar a prioridade local mesmo quando o endereço for aberto diretamente.
+    if not codigo_comercial(codigo):
+        return redirect('codigo_barras')
+    if (Produto.objects.filter(ean=codigo).exists() or
+            Exemplar.objects.filter(codigo_interno=codigo).exists() or pesquisar_filmes(ean=codigo)):
+        from django.urls import reverse
+        from urllib.parse import urlencode
+        return redirect(reverse('codigo_barras') + '?' + urlencode({'codigo': codigo}))
+    submitted = 'titulo' in request.GET or 'artista' in request.GET
+    form = BuscaCDForm(request.GET if submitted else None, initial={'codigo': codigo})
+    results, erro = [], None
+    if submitted and form.is_valid():
+        try:
+            rows = pesquisar(form.cleaned_data['titulo'], form.cleaned_data['artista'])
+            for row in rows:
+                fields = {**row, 'ean': codigo}
+                results.append({**row, 'cadastro_url': guardar_prefill(request, fields, codigo)})
+        except FonteIndisponivel as exc:
+            erro = str(exc)
+    return render(request, 'acervo/buscar_cd.html', {
+        'form': form, 'codigo': codigo, 'results': results, 'erro': erro,
+        'pesquisou': submitted and form.is_valid(), 'manual_url': cadastro_manual_url(codigo, 'ean')})

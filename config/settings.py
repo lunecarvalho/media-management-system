@@ -182,8 +182,7 @@ CSRF_TRUSTED_ORIGINS = [
 # API Base URLs (para integração futura)
 MUSICBRAINZ_API_URL = config('MUSICBRAINZ_API_URL', default='https://musicbrainz.org/ws/2/')
 MUSICBRAINZ_USER_AGENT = config('MUSICBRAINZ_USER_AGENT', default='MediaTrack/1.0 (https://github.com/lunecarvalho/media-management-system)')
-MOVIES_DATASET_PATH = config('MOVIES_DATASET_PATH', default='')
-TMDB_API_KEY = config('TMDB_API_KEY', default='')
+DVD_DATASET_PATH = config('DVD_DATASET_PATH', default=str(BASE_DIR / 'datasets' / 'bd_model-criacao.sql'))
 
 LOGGING = {
     'version': 1, 'disable_existing_loggers': False,

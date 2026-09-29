@@ -37,5 +37,5 @@ class MoviesTests(TestCase):
     def test_optional_dataset_and_command_report(self):
         self.assertEqual(pesquisar('Matrix'), [])
         output = io.StringIO()
-        call_command('importar_filmes', arquivo=str(self.path), lote=1, stdout=output)
+        call_command('importar_filmes', arquivo=str(self.path), lote=1, legado_csv=True, stdout=output)
         self.assertEqual(json.loads(output.getvalue())['invalidos'], 1)

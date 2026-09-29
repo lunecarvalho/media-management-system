@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block titulo_pagina %}Buscar CD por título/artista{% endblock %}
+{% block conteudo %}
+<section class="card">
+<h2>Buscar CD no MusicBrainz</h2>
+<p>EAN/UPC do produto físico: <strong>{{ codigo }}</strong>. Este código será mantido no cadastro, mesmo que a edição tenha outro barcode.</p>
+<form method="get">{{ form.as_p }}<button class="btn btn-primaria" type="submit">Buscar no MusicBrainz</button></form>
+{% if erro %}<p role="alert">{{ erro }}</p>
+{% elif pesquisou %}
+{% if results %}<h2>Resultados encontrados</h2><p>Selecione a edição correta e revise os dados antes de cadastrar.</p>
+{% for row in results %}<article class="card">
+<h3>{{ row.titulo }}</h3><p>{{ row.artista_diretor }}</p>
+<dl>
+{% if row.metadados.data %}<dt>Data</dt><dd>{{ row.metadados.data }}</dd>{% endif %}
+{% if row.metadados.pais %}<dt>País</dt><dd>{{ row.metadados.pais }}</dd>{% endif %}
+{% if row.gravadora_distribuidora %}<dt>Gravadora</dt><dd>{{ row.gravadora_distribuidora }}</dd>{% endif %}
+{% if row.metadados.catalogos %}<dt>Número de catálogo</dt><dd>{{ row.metadados.catalogos|join:", " }}</dd>{% endif %}
+<dt>Barcode no MusicBrainz</dt><dd>{{ row.metadados.barcode_musicbrainz|default:"Não informado" }}</dd>
+<dt>Formato</dt><dd>{{ row.metadados.formatos|join:", " }}</dd>
+</dl><a class="btn btn-primaria" href="{{ row.cadastro_url }}">Selecionar esta edição</a></article>{% endfor %}
+{% else %}<p role="status">Nenhum CD correspondente foi encontrado no MusicBrainz.</p><p>Tente outra pesquisa utilizando os campos acima.</p>{% endif %}
+{% endif %}
+<p><a class="btn btn-secundaria" href="{{ manual_url }}">Continuar com cadastro manual</a></p>
+</section>
+{% endblock %}

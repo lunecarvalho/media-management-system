@@ -35,6 +35,7 @@ class BarcodeFlowTests(TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertTrue(response.json()['metadados_disponiveis'])
         self.assertIn('cadastro_url', response.json())
+        self.assertEqual(response.json()['busca_cd_url'], '/acervo/buscar-cd/?codigo=' + self.code)
         search.assert_not_called()
         self.assert_no_registration()
 
@@ -93,6 +94,8 @@ class BarcodeFlowTests(TestCase):
         response = self.client.get(self.url, {'metadados': '1'})
         self.assertEqual(response.status_code, 502)
         self.assertEqual(response.json()['erro']['codigo'], 'fonte_indisponivel')
+        self.assertEqual(response.json()['busca_cd_url'], '/acervo/buscar-cd/?codigo=' + self.code)
+        self.assertEqual(response.json()['cadastro_url'], '/acervo/cadastrar/?codigo=' + self.code + '&modo=auto&origem=barcode')
         search.side_effect = None
         for rows in ([], [{**self.row, 'ean': '0000000000000'}], [{**self.row, 'tipo': 'DVD'}]):
             search.return_value = rows
@@ -131,7 +134,9 @@ class BarcodeFlowTests(TestCase):
         self.assertContains(response, 'expiraram')
         self.assertIsNone(response.context['form'].product_form['titulo'].value())
         self.client.force_login(self.user)
-        cache.clear()
+        session = self.client.session
+        session.pop('barcode_prefill', None)
+        session.save()
         response = self.client.get(target)
         self.assertContains(response, 'expiraram')
         self.assertEqual(response.context['form'].product_form['ean'].value(), self.code)
@@ -148,10 +153,13 @@ class BarcodeFlowTests(TestCase):
 
     @patch('acervo.barcode_flow.pesquisar')
     def test_permissions_and_fallback_remain_enforced(self, search):
+        search.return_value = []
         response = self.client.get(reverse('codigo_barras'), {'codigo': self.code})
         self.assertContains(response, 'modo=auto')
         self.assertContains(response, 'Consultar em página completa')
         self.assert_no_registration()
+        search.assert_called_once_with(ean=self.code, somente_cd=True)
+        search.reset_mock()
         for user in (None, User.objects.create_user('no-profile')):
             self.client.logout()
             if user:

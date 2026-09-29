@@ -23,7 +23,7 @@ def reservar_requisicao():
 
 
 def consultar(params):
-    key = 'musicbrainz:' + hashlib.sha256(repr(sorted(params.items())).encode()).hexdigest()
+    key = 'musicbrainz:cd-v3:' + hashlib.sha256(repr(sorted(params.items())).encode()).hexdigest()
     cached = cache.get(key)
     if cached is not None:
         return cached
@@ -33,6 +33,8 @@ def consultar(params):
             params={**params, 'fmt': 'json', 'limit': 20},
             headers={'User-Agent': settings.MUSICBRAINZ_USER_AGENT, 'Accept': 'application/json'},
             timeout=(3.05, 10), allow_redirects=False)
+        if 400 <= response.status_code < 500:
+            raise FonteIndisponivel('A pesquisa não pôde ser processada pelo MusicBrainz. Tente outra pesquisa.')
         if response.status_code != 200:
             raise FonteIndisponivel('MusicBrainz indisponível. Tente novamente mais tarde.')
         data = response.json()
@@ -44,8 +46,17 @@ def consultar(params):
         results = []
         for release in releases[:20]:
             try:
+                media = release.get('media')
+                # Pesquisa por format:CD pode incluir edições mistas. Só aceitar
+                # edições com todos os suportes explicitamente identificados como CD.
+                if not isinstance(media, list) or not media or any(
+                    not isinstance(medium, dict) or medium.get('format') != 'CD' for medium in media
+                ):
+                    continue
                 mbid = str(uuid.UUID(release['id']))
-                title = str(release['title'])[:200]
+                if not isinstance(release.get('title'), str) or not release['title'].strip():
+                    continue
+                title = release['title'].strip()[:200]
                 artist = ''.join(str(a.get('name', a.get('artist', {}).get('name', ''))) + str(a.get('joinphrase', ''))
                                  for a in release.get('artist-credit', []) if isinstance(a, dict))[:200]
                 year_text = str(release.get('date', ''))[:4]
@@ -54,16 +65,22 @@ def consultar(params):
                     'descricao': str(release.get('disambiguation', ''))[:2000],
                     'gravadora_distribuidora': ', '.join(x.get('label', {}).get('name', '') for x in release.get('label-info', []))[:200],
                     'identificadores': {'musicbrainz_release_id': mbid}, 'origem': 'MusicBrainz',
-                    'metadados': {'pais': release.get('country', ''), 'status': release.get('status', '')}})
+                    'metadados': {'barcode_musicbrainz': str(release.get('barcode') or '')[:20],
+                                  'data': release.get('date', ''),
+                                  'catalogos': [x['catalog-number'] for x in release.get('label-info', []) if x.get('catalog-number')],
+                                  'pais': release.get('country', ''), 'status': release.get('status', ''),
+                                  'formatos': [medium['format'] for medium in media]}})
             except (ValueError, KeyError, TypeError, AttributeError):
                 continue
         cache.set(key, results, timeout=3600)
         return results
+    except requests.Timeout as exc:
+        raise FonteIndisponivel('O MusicBrainz demorou para responder. Tente novamente ou continue manualmente.') from exc
     except (requests.RequestException, ValueError) as exc:
         raise FonteIndisponivel('Não foi possível consultar o MusicBrainz.') from exc
 
 
-def pesquisar(texto='', artista='', ean='', somente_cd=False):
+def pesquisar(texto='', artista='', ean='', somente_cd=True):
     def quoted(value):
         # Lucene: restringir operadores para não permitir consultas arbitrárias.
         return '"' + ''.join(c for c in value[:200] if c.isalnum() or c in ' -_.') + '"'
@@ -73,6 +90,7 @@ def pesquisar(texto='', artista='', ean='', somente_cd=False):
     if ean.strip(): parts.append('barcode:' + quoted(ean))
     if not parts:
         return []
-    if somente_cd:
-        parts.append('format:CD')
-    return consultar({'query': ' AND '.join(parts)})
+    # O parâmetro permanece por compatibilidade; esta fonte fornece apenas CDs.
+    parts.append('format:CD')
+    results = consultar({'query': ' AND '.join(parts)})
+    return [row for row in results if row['ean'] == ean.strip()] if ean.strip() else results

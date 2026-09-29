@@ -58,7 +58,8 @@ htmlcov/
 *.cover
 
 # Catálogos externos e backups locais
-/datasets/
+/datasets/*
+!/datasets/bd_model-criacao.sql
 /backups/
 movies_metadata.csv
 credits.csv

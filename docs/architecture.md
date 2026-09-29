@@ -29,6 +29,7 @@ API usa autenticação por sessão e CSRF, paginação e envelope de erro. /api/
 - acervo/0004: registros de pré-visualização/importação CSV.
 - movimentacoes/0002: tipos de eventos, snapshots e relações protegidas.
 - integracoes/0001 e 0002: controle de requisições externas e FilmeReferencia.
+- integracoes/0003: EAN e diretor na mesma FilmeReferencia; TMDB ID opcional, preservando referências legadas.
 
 IDs de exemplares e vínculos de movimentações são preservados. A migração cria um Produto por registro legado, sem deduplicar silenciosamente metadados. O código legado é preservado como código interno e copiado para EAN; confirme a semântica desses códigos antes de utilizar o catálogo comercial.
 
@@ -39,3 +40,12 @@ A migração de dados não tem reversão automática. Antes de aplicar no acervo
 Dashboard consulta totais de Produtos/Exemplares, status, valor de disponíveis/reservados e últimas movimentações. Os indicadores são atualizados na requisição da página. Listagens usam paginação.
 
 Leitor funciona como teclado: código interno abre exemplar; EAN mostra Produto e exemplares; desconhecido oferece pesquisa/cadastro. A seleção explícita do tipo resolve colisões entre códigos internos e comerciais. Não existe detecção física do dispositivo.
+
+## Fontes de identificação
+
+CDs usam MusicBrainz com validação explícita de formato. DVDs usam a base EAN/UPC
+do grupo, carregada em FilmeReferencia pelo comando importar_filmes. O SQL é
+apenas fonte de importação, nunca uma consulta em tempo real nem outro banco.
+O leitor prioriza acervo existente, DVDs locais, MusicBrainz e cadastro manual.
+Pré-preenchimento e proveniência ficam na sessão Django por 30 minutos, sem
+criar estoque antes da confirmação. Consulte [importação](data-import.md).

@@ -182,7 +182,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const unknown = (code, mode, data, external = false) => {
         const card = resultCard();
         card.className = 'card leitura-nao-encontrado';
-        const title = element('h2', 'Código não encontrado no sistema');
+        const unavailable = data.erro?.codigo === 'fonte_indisponivel';
+        const title = element('h2', unavailable ? 'Consulta de metadados indisponível' : 'Código não encontrado no sistema');
         title.className = 'leitura-erro-titulo';
         const codeCard = element('div');
         codeCard.className = 'leitura-codigo-consultado';
@@ -194,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
         codeCard.append(codeIcon, codeInfo);
         const notice = element('div');
         notice.className = 'leitura-nao-cadastrado';
-        notice.append(element('strong', 'Produto não cadastrado'), element('p', 'Você pode cadastrar este item manualmente informando os dados do produto. O código de barras será preenchido automaticamente.'));
+        notice.append(element('strong', unavailable ? 'Não foi possível concluir a consulta externa' : 'Produto não cadastrado'), element('p', 'Você pode cadastrar este item manualmente informando os dados do produto. O código de barras será preenchido automaticamente.'));
         card.append(title, codeCard, notice);
         if (data.metadados_disponiveis || external) {
             const search = element('button', external ? 'Tentar MusicBrainz novamente' : 'Buscar informações de CD no MusicBrainz');
@@ -205,6 +206,11 @@ document.addEventListener('DOMContentLoaded', () => {
             help.className = 'leitura-ajuda-contextual';
             help.append(element('summary', 'Buscar informações externas'), search);
             card.append(help);
+        }
+        if (data.busca_cd_url) {
+            const textSearch = link('Buscar CD por título/artista', data.busca_cd_url);
+            textSearch.className = 'btn btn-secundaria';
+            card.append(actionRow(textSearch));
         }
         const register = registrationLink('Cadastrar este item', {codigo: code, modo: mode}, data.cadastro_url);
         register.className = 'btn btn-primaria';
@@ -276,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const renderExternal = data => {
         if (!Array.isArray(data.results) || !data.results.length || data.results.some(product =>
-            !product || product.tipo !== 'CD' || typeof product.titulo !== 'string' || !product.titulo || typeof product.cadastro_url !== 'string')) {
+            !product || !['CD', 'DVD'].includes(product.tipo) || typeof product.titulo !== 'string' || !product.titulo || typeof product.cadastro_url !== 'string')) {
             throw new Error('Resposta externa inválida.');
         }
         // Validar destinos antes de permitir qualquer seleção.
@@ -418,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const url = new URL(barcodeForm.dataset.apiUrl.replace('CODIGO', encodeURIComponent(code)), window.location.href);
             url.searchParams.set('modo', mode);
             url.searchParams.set('page', page);
-            if (external) url.searchParams.set('metadados', '1');
+            if (external || (mode !== 'interno' && /^(?:[0-9]{8}|[0-9]{12}|[0-9]{13})$/.test(code))) url.searchParams.set('metadados', '1');
             const response = await fetch(url, {
                 headers: {Accept: 'application/json'}, credentials: 'same-origin', signal: controller.signal,
             });
@@ -461,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 retry.className = 'btn btn-primaria';
                 retry.addEventListener('click', () => lookup(code, mode, page, true, external));
                 card.append(actionRow(resetButton(), retry), link('Consultar em página completa', barcodeForm.action || window.location.href, {codigo: code, modo: mode, consulta_html: '1'}));
-                if (external) card.append(registrationLink('Cadastrar manualmente', {codigo: code, modo: mode}));
+                card.append(registrationLink('Cadastrar manualmente', {codigo: code, modo: mode}));
                 results.replaceChildren(card);
             }
             status.textContent = errorMessage(error);

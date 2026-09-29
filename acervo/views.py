@@ -46,7 +46,8 @@ def lista(request):
 @login_required
 def cadastrar(request):
     if request.method == 'POST':
-        form = ItemForm(request.POST, usuario=request.user)
+        from .barcode_flow import metadados_selecionados
+        form = ItemForm(request.POST, usuario=request.user, metadados=metadados_selecionados(request))
         if form.is_valid():
             try:
                 item = form.save()

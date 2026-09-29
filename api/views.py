@@ -1,6 +1,8 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.urls import reverse
+from urllib.parse import urlencode
 
 from acervo.models import Categoria, Item, Produto
 from movimentacoes.models import Movimentacao
@@ -54,11 +56,17 @@ class ItemViewSet(viewsets.ModelViewSet):
         if request.query_params.get('metadados') == '1':
             if not permitido(request.user, 'editar_acervo'):
                 return Response({'detail': 'Sem permissão para consultar metadados.'}, status=403)
-            data, status = consultar_metadados(codigo, modo, request.user)
+            data, status = consultar_metadados(codigo, modo, request)
             return Response(data, status=status)
-        return Response({'erro': {'codigo': 'nao_encontrado', 'detalhes': 'Código não encontrado no acervo local.'},
+        if codigo_comercial(codigo, modo) and permitido(request.user, 'editar_acervo'):
+            data, status = consultar_metadados(codigo, modo, request, externa=False)
+            return Response(data, status=status)
+        data = {'erro': {'codigo': 'nao_encontrado', 'detalhes': 'Código não encontrado no acervo local.'},
             'metadados_disponiveis': codigo_comercial(codigo, modo) and permitido(request.user, 'editar_acervo'),
-            'cadastro_url': cadastro_manual_url(codigo, modo)}, status=404)
+            'cadastro_url': cadastro_manual_url(codigo, modo)}
+        if codigo_comercial(codigo, modo):
+            data['busca_cd_url'] = reverse('acervo:buscar_cd') + '?' + urlencode({'codigo': codigo})
+        return Response(data, status=404)
 
 
 

@@ -18,9 +18,10 @@ class ItemForm(forms.ModelForm):
         fields = ['produto', 'codigo_interno', 'estado_conservacao', 'preco', 'localizacao', 'status']
         widgets = {'preco': forms.NumberInput(attrs={'step': '0.01', 'min': '0'})}
 
-    def __init__(self, *args, usuario=None, **kwargs):
+    def __init__(self, *args, usuario=None, metadados=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.usuario = usuario
+        self.metadados = metadados
         self.original_status = self.instance.status if self.instance.pk else None
         self.fields['produto'].required = False
         self.fields['produto'].help_text = 'Selecione um produto existente ou preencha os dados abaixo.'
@@ -41,7 +42,13 @@ class ItemForm(forms.ModelForm):
         valid = super().is_valid()
         if self.cleaned_data.get('produto'):
             return valid
-        return self.product_form.is_valid() and valid
+        product_valid = self.product_form.is_valid()
+        if product_valid and self.metadados:
+            for field in ('tipo', 'ean'):
+                if self.product_form.cleaned_data[field] != self.metadados[field]:
+                    self.product_form.add_error(field, 'Valor incompatível com a edição selecionada. Faça nova consulta ou cadastro manual.')
+                    product_valid = False
+        return product_valid and valid
 
     @transaction.atomic
     def save(self, commit=True):
@@ -49,7 +56,11 @@ class ItemForm(forms.ModelForm):
             raise ValueError('Informe usuario e utilize commit=True.')
         product = self.cleaned_data.get('produto')
         if not product:
-            product = salvar_produto(self.product_form.save(commit=False), self.usuario)
+            product = self.product_form.save(commit=False)
+            if self.metadados:
+                for field in ('origem', 'identificadores', 'metadados'):
+                    setattr(product, field, self.metadados[field])
+            product = salvar_produto(product, self.usuario)
         data = {f: self.cleaned_data[f] for f in self.Meta.fields}
         data['produto'] = product
         self.instance = salvar_exemplar(usuario=self.usuario, dados=data,

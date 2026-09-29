@@ -67,9 +67,32 @@ A imagem padrão usa Gunicorn como usuário sem privilégios. O Compose de produ
 | TRUST_PROXY_HEADERS | Somente atrás de proxy controlado |
 | SECURE_SSL_REDIRECT, SECURE_HSTS_SECONDS | HTTPS; produção força redirecionamento |
 | MUSICBRAINZ_USER_AGENT | Identificação real e contato para o serviço |
-| MOVIES_DATASET_PATH | Caminho opcional do catálogo auxiliar |
+| DVD_DATASET_PATH | Caminho do SQL de DVDs; padrão datasets/bd_model-criacao.sql |
 | LOCAL_UID, LOCAL_GID | Usuário do Compose de desenvolvimento |
 | RDS_CA_PATH | Certificado público montado no Compose de produção |
+
+## Metadados de CDs e DVDs
+
+CDs utilizam MusicBrainz, com verificação explícita de formato. DVDs utilizam a base
+EAN/UPC do grupo importada no mesmo banco Django. Sem resultado, o cadastro manual
+preserva o código. Consulte [importação e limitações](docs/data-import.md).
+
+Depois de aplicar as migrações e disponibilizar `datasets/bd_model-criacao.sql`:
+
+```text
+python manage.py importar_filmes
+```
+
+A pasta datasets é ignorada pelo Git: obtenha o arquivo do grupo em instalações novas.
+Não execute o SQL diretamente. Repetir o comando ignora dados idênticos e atualiza
+referências alteradas, sem modificar produtos/exemplares já cadastrados.
+
+Testes dessa integração (MusicBrainz simulado):
+
+```text
+python manage.py test integracoes acervo.tests.test_dvd_flow acervo.tests.test_barcode_flow --settings=config.test_settings
+node --test acervo/tests/js/barcode.test.cjs acervo/tests/js/cadastro-item.test.cjs
+```
 
 ## Organização e manutenção
 

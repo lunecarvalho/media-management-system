@@ -55,7 +55,7 @@ def importar(path, batch_size=500):
                 film = FilmeReferencia(tmdb_id=int(raw['id']), titulo=raw['title'],
                     titulo_original=raw.get('original_title') or raw['title'], ano=year,
                     imdb_id=raw.get('imdb_id') or '', descricao=raw.get('overview') or '',
-                    metadados={'generos': names(raw.get('genres')), 'idioma': raw.get('original_language') or '',
+                    origem=SOURCE, metadados={'generos': names(raw.get('genres')), 'idioma': raw.get('original_language') or '',
                     'paises': names(raw.get('production_countries')), 'produtoras': names(raw.get('production_companies'))})
                 film.full_clean(validate_unique=False)
                 batch.append(film)
@@ -67,7 +67,7 @@ def importar(path, batch_size=500):
 
 
 def pesquisar(texto='', ano=None, identificador=''):
-    films = FilmeReferencia.objects.all()
+    films = FilmeReferencia.objects.filter(origem=SOURCE)
     if identificador:
         films = films.filter(Q(imdb_id=identificador) | Q(tmdb_id=int(identificador) if identificador.isdigit() else -1))
     elif texto.strip():

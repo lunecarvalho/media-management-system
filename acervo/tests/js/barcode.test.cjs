@@ -686,3 +686,54 @@ test('obsolete responses cannot replace the latest visual state', async () => {
     assert.equal(ui.form.attributes['data-state'], 'found');
     assert.equal(ui.heading.textContent, 'Item encontrado');
 });
+
+
+test('commercial barcode automatically requests metadata and renders local DVD', async () => {
+    const ui = setup();
+    ui.submit('7892110019392');
+    assert.equal(ui.requests[0].url.searchParams.get('metadados'), '1');
+    respond(ui.requests[0], {tipo_codigo: 'externo', fonte: 'Base de DVDs do grupo', results: [
+        {...externalEdition('MATRIX'), tipo: 'DVD', artista_diretor: 'Diretor', ano: 1999, ean: '7892110019392'}]});
+    await flush();
+    assert.match(ui.results.textContent, /MATRIX/);
+    assert.match(ui.results.textContent, /DVD/);
+    assert.match(ui.results.textContent, /Diretor/);
+    assert.ok(actionNamed(ui, 'Cadastrar item'));
+    assert.equal(ui.requests.length, 1);
+});
+
+test('explicit internal mode never automatically requests metadata for numeric code', () => {
+    const ui = setup();
+    ui.mode.value = 'interno';
+    ui.submit('7892110019392');
+    assert.equal(ui.requests[0].url.searchParams.has('metadados'), false);
+});
+
+
+test('automatic provider failure offers manual registration without claiming missing metadata', async () => {
+    const ui = setup();
+    ui.submit('7892110019392');
+    respond(ui.requests[0], {erro: {codigo: 'fonte_indisponivel', detalhes: 'MusicBrainz indisponível'},
+        cadastro_url: '/acervo/cadastrar/?codigo=7892110019392&modo=ean',
+        busca_cd_url: '/acervo/buscar-cd/?codigo=7892110019392'}, 502);
+    await flush();
+    assert.match(ui.results.textContent, /Consulta de metadados indisponível/);
+    assert.doesNotMatch(ui.results.textContent, /Código não encontrado no sistema/);
+    const search = actionNamed(ui, 'Buscar CD por título/artista');
+    assert.equal(new URL(search.href).pathname, '/acervo/buscar-cd/');
+    assert.equal(new URL(search.href).searchParams.get('codigo'), '7892110019392');
+    assert.equal(new URL(actionNamed(ui, 'Cadastrar este item').href).searchParams.get('codigo'), '7892110019392');
+});
+
+
+test('missing barcode offers explicit textual search without another API request', async () => {
+    const ui = setup();
+    ui.submit('7891430074425');
+    respond(ui.requests[0], {erro: {codigo: 'nao_encontrado'},
+        busca_cd_url: '/acervo/buscar-cd/?codigo=7891430074425'}, 404);
+    await flush();
+    const target = new URL(actionNamed(ui, 'Buscar CD por título/artista').href);
+    assert.equal(target.pathname, '/acervo/buscar-cd/');
+    assert.equal(target.searchParams.get('codigo'), '7891430074425');
+    assert.equal(ui.requests.length, 1);
+});

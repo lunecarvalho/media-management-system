@@ -82,7 +82,7 @@ Provisionamento e configuração de infraestrutura são procedimentos separados.
 | GitHub Repository Variables | AWS_DEPLOY_ENABLED (manter false) |
 | GitHub Environment aws-production Variables | AWS_REGION, AWS_ROLE_ARN, EB_APPLICATION, EB_ENVIRONMENT, EB_ARTIFACT_BUCKET, RDS_CA_BUNDLE_URL |
 | Ambiente seguro da aplicação | DJANGO_SETTINGS_MODULE, DEBUG, SECRET_KEY, DATABASE_URL, ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS, TRUST_PROXY_HEADERS |
-| Aplicação, opcionais | CORS_ALLOWED_ORIGINS, MUSICBRAINZ_USER_AGENT, MOVIES_DATASET_PATH, SECURE_HSTS_SECONDS |
+| Aplicação, opcionais | CORS_ALLOWED_ORIGINS, MUSICBRAINZ_USER_AGENT, DVD_DATASET_PATH, SECURE_HSTS_SECONDS |
 
 Região, ARN, nomes de recursos, endpoint RDS e domínio só podem ser preenchidos após
 decisão/provisionamento autorizado. OIDC não exige Secret AWS permanente no GitHub.

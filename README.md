@@ -38,7 +38,9 @@ O projeto também explora conceitos de desenvolvimento web, APIs REST, bancos de
 - Importação de dados via CSV
 - API REST
 - Integração com MusicBrainz para metadados de CDs
-- Consulta auxiliar de metadados de filmes
+- Identificação de DVDs pela base EAN/UPC local do grupo
+- Busca alternativa de CDs por título e artista
+- Cadastro manual com preservação do EAN físico quando nenhuma fonte encontra o item
 - Testes automatizados
 - Ambiente preparado para Docker
 - CI/CD com GitHub Actions
@@ -76,8 +78,9 @@ Isso permite, por exemplo, que duas cópias do mesmo DVD possuam preços, estado
 |---|---|
 | Backend | Python 3.14 · Django 5.2 LTS |
 | API | Django REST Framework |
-| Banco de dados | SQLite · PostgreSQL |
+| Banco de dados | SQLite para desenvolvimento/testes · PostgreSQL em produção |
 | Frontend | Django Templates · HTML · CSS · JavaScript |
+| Integrações | MusicBrainz API · base local de DVDs por EAN |
 | Container | Docker |
 | Servidor | Gunicorn |
 | Arquivos estáticos | WhiteNoise |
@@ -90,15 +93,58 @@ Isso permite, por exemplo, que duas cópias do mesmo DVD possuam preços, estado
 
 ## Integrações
 
-### MusicBrainz
+### CDs → MusicBrainz
 
-Utilizado para sugerir metadados de CDs. Os resultados são apresentados para seleção antes de serem associados ao produto.
+Pesquisa por título, artista ou EAN/UPC, aceitando somente edições cujo formato seja
+explicitamente CD. Os metadados selecionados são revisados antes do cadastro.
 
-### Movies Dataset
+### DVDs → base EAN/UPC local do grupo
 
-Utilizado como catálogo auxiliar de metadados cinematográficos.
+O arquivo `datasets/bd_model-criacao.sql` popula o model Django `FilmeReferencia`
+com EAN/UPC, título, diretor e ano. A aplicação consulta esse model no mesmo banco
+operacional; não executa o arquivo SQL durante leituras.
 
-O dataset é independente do banco operacional do MediaTrack e **não é utilizado como catálogo de códigos EAN/UPC**.
+No leitor: **acervo cadastrado → base local de DVDs → MusicBrainz/CD → cadastro manual**.
+Um DVD encontrado localmente não gera requisição ao MusicBrainz. Sem resultado,
+o EAN permanece no formulário e o usuário escolhe o tipo e preenche os dados.
+
+Após disponibilizar o arquivo e aplicar as migrações, execute `python manage.py importar_filmes`.
+O importador lê `datasets/bd_model-criacao.sql` via ORM, sem executar o SQL diretamente,
+e é idempotente: EANs com os mesmos dados são ignorados e referências alteradas são
+atualizadas. Outros arquivos em `datasets/` permanecem ignorados pelo Git.
+Detalhes, reimportação e compatibilidade legada: [guia de importação](docs/data-import.md).
+
+### Fluxo de identificação por código de barras
+
+```text
+Código de barras
+   ↓
+Item já existe no acervo?
+   ↓ não
+Base local de DVDs
+   ↓ não encontrado
+MusicBrainz (CD)
+   ↓ não encontrado
+Busca por título/artista
+   ↓
+Cadastro manual
+```
+
+CDs são consultados no MusicBrainz; DVDs são consultados na base local do projeto.
+Quando a identificação automática de um CD falha, o usuário pode pesquisar por título,
+artista ou ambos e selecionar explicitamente uma edição compatível com CD. O EAN físico
+informado no leitor permanece no cadastro, separado do barcode eventualmente retornado
+pela fonte externa.
+
+### CD não encontrado pelo EAN
+
+No leitor, use **Buscar CD por título/artista** para pesquisar explicitamente no
+MusicBrainz. Informe título, artista ou ambos e selecione a edição correta.
+Somente edições compostas exclusivamente por CDs são aceitas. O EAN físico
+permanece no cadastro; o barcode da fonte fica em `metadados.barcode_musicbrainz`
+e o release em `identificadores.musicbrainz_release_id`. Nenhum produto é salvo
+antes da confirmação. Sem resultados ou com a fonte indisponível, o cadastro
+manual continua disponível com o EAN preenchido. DVDs mantêm a consulta local.
 
 ---
 

@@ -2,11 +2,12 @@ from django.urls import path
 
 from . import views
 from . import import_views
-from integracoes.views import metadados
+from integracoes.views import metadados, buscar_cd
 
 app_name = 'acervo'
 
 urlpatterns = [
+    path('buscar-cd/', buscar_cd, name='buscar_cd'),
     path('metadados/', metadados, name='metadados'),
     path('importar/', import_views.importar, name='importar_csv'),
     path('importar/<uuid:pk>/', import_views.previa, name='previa_csv'),

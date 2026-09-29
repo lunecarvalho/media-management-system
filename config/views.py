@@ -74,9 +74,14 @@ def codigo_barras(request):
     modo = request.GET.get('modo', 'auto')
     if modo not in {'auto', 'ean', 'interno'}: modo = 'auto'
     item, produto = localizar(codigo, modo)
+    metadados = None
+    from acervo.barcode_flow import codigo_comercial, consultar_metadados
+    from usuarios.permissions import permitido
+    if not item and not produto and codigo_comercial(codigo, modo) and permitido(request.user, 'editar_acervo'):
+        metadados, _ = consultar_metadados(codigo, modo, request)
     exemplares = paginar(request, produto.exemplares.select_related('produto').all()) if produto else None
     return render(request, 'codigo_barras.html', {'codigo': codigo, 'modo': modo, 'item': item,
-        'produto': produto, 'exemplares': exemplares, 'page_obj': exemplares,
+        'produto': produto, 'metadados': metadados, 'exemplares': exemplares, 'page_obj': exemplares,
         'disponiveis': produto.exemplares.filter(status='disponivel').exists() if produto else False})
 
 
