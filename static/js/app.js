@@ -2,20 +2,51 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.lucide) window.lucide.createIcons();
     const toggle = document.getElementById('menu-toggler');
     const sidebar = document.getElementById('sidebar');
-    const closeMenu = () => {
-        sidebar.classList.remove('aberto');
-        toggle.setAttribute('aria-expanded', 'false');
-    };
+    const closeButton = document.getElementById('sidebar-close');
     if (toggle && sidebar) {
-        toggle.addEventListener('click', () => {
-            const opened = sidebar.classList.toggle('aberto');
+        const mobile = window.matchMedia('(max-width: 768px)');
+        const firstLink = () => sidebar.querySelector('a[href]');
+        const isOpen = () => mobile.matches && sidebar.classList.contains('aberto');
+        const setMenu = opened => {
+            opened = mobile.matches && opened;
+            sidebar.classList.toggle('aberto', opened);
+            sidebar.inert = mobile.matches && !opened;
             toggle.setAttribute('aria-expanded', String(opened));
+        };
+        const closeMenu = (returnFocus = false) => {
+            if (!isOpen()) return;
+            if (returnFocus || sidebar.contains(document.activeElement)) toggle.focus();
+            setMenu(false);
+        };
+        const syncMenu = () => {
+            if (mobile.matches && sidebar.contains(document.activeElement)) toggle.focus();
+            if (!mobile.matches && document.activeElement === closeButton) firstLink()?.focus();
+            setMenu(false);
+            if (!mobile.matches && document.activeElement === toggle) firstLink()?.focus();
+        };
+        syncMenu();
+        mobile.addEventListener('change', syncMenu);
+        closeButton?.addEventListener('click', () => closeMenu(true));
+        toggle.addEventListener('click', () => {
+            if (!mobile.matches) return;
+            if (isOpen()) closeMenu(true);
+            else {
+                setMenu(true);
+                firstLink()?.focus();
+            }
         });
         document.addEventListener('click', event => {
             if (!sidebar.contains(event.target) && !toggle.contains(event.target)) closeMenu();
         });
+        // O menu não é modal: Tab pode sair, fechando a sobreposição.
+        document.addEventListener('focusin', event => {
+            if (!sidebar.contains(event.target) && event.target !== toggle) closeMenu();
+        });
         document.addEventListener('keydown', event => {
-            if (event.key === 'Escape') { closeMenu(); toggle.focus(); }
+            if (event.key === 'Escape' && isOpen()) {
+                event.preventDefault();
+                closeMenu(true);
+            }
         });
     }
     const date = document.getElementById('data-atual');
@@ -122,8 +153,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (compact && coverUrl) {
             const image = element('img');
             image.alt = `Capa de ${product.titulo}`;
-            image.loading = 'lazy';
+            // A imagem fica oculta até carregar; lazy aguardaria sua visibilidade.
+            image.loading = 'eager';
             image.addEventListener('load', () => {
+                cover.removeAttribute('role');
+                cover.removeAttribute('aria-label');
                 image.hidden = false;
                 cover.classList.add('leitura-capa-com-imagem');
             });

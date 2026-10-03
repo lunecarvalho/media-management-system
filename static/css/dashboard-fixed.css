@@ -284,12 +284,46 @@
 
 .tabela-container {
   overflow-x: auto;
+  min-width: 0;
+}
+
+/* Permitir quebra apenas quando o conteúdo exceder o espaço disponível. */
+.tabela-wrapper,
+.campo-formulario,
+.grade-categorias > .card,
+.grade-configuracoes > .card {
+  min-width: 0;
+}
+
+.tabela-header.flex-entre,
+.formulario-cabecalho.flex-entre {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.formulario-cabecalho > div,
+.linha-formulario > span,
+.detalhes-item > div {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.conteudo-principal .btn {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.conteudo-principal form p {
+  overflow-wrap: anywhere;
 }
 
 /* INVENTORY AND MANAGEMENT PAGES */
 .filtros-acervo,
 .linha-formulario {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   padding: 20px 24px;
@@ -534,6 +568,7 @@
   }
 
   .formulario-grade,
+  .detalhes-item,
   .grade-categorias,
   .grade-configuracoes {
     grid-template-columns: 1fr;

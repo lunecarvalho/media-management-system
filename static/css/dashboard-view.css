@@ -28,7 +28,7 @@
 .acao-dashboard strong { display: block; font-size: .95rem; }
 .acao-dashboard strong + span { display: block; font-size: .95rem; color: #a4b9d1; margin-top: 2px; }
 .acao-dashboard:hover { border-color: #509ef4; background: #15283d; color: white; }
-.acao-destaque { background: #307de0; border-color: #307de0; }
+.acao-destaque { background: #2870cc; border-color: #2870cc; }
 .acao-destaque .icone-dashboard { background: #ffffff24; }
 .acao-destaque strong + span { color: #fff; }
 .acao-destaque:hover { background: #246ac4; }

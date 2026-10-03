@@ -218,6 +218,8 @@ a:hover {
 input,
 textarea,
 select {
+  max-width: 100%;
+  min-width: 0;
   font-family: inherit;
   background-color: var(--cor-card);
   color: var(--cor-texto-principal);
@@ -317,12 +319,12 @@ label {
 
 .badge-cd {
   background-color: rgba(0, 168, 232, 0.2);
-  color: #00a8e8;
+  color: #16baf7;
 }
 
 .badge-dvd {
   background-color: rgba(155, 89, 182, 0.2);
-  color: #9b59b6;
+  color: #c58cdc;
 }
 
 .badge-disponivel {
@@ -352,12 +354,12 @@ label {
 
 .badge-edicao {
   background-color: rgba(0, 168, 232, 0.2);
-  color: #00a8e8;
+  color: #16baf7;
 }
 
 .badge-reserva {
   background-color: rgba(155, 89, 182, 0.2);
-  color: #9b59b6;
+  color: #c58cdc;
 }
 
 /* Tabelas */

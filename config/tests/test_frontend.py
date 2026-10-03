@@ -36,6 +36,9 @@ class FrontendTests(TestCase):
         self.assertContains(response, 'R$ 0,00')
         self.assertContains(response, '</main>', count=1)
         self.assertContains(response, 'aria-expanded="false"')
+        self.assertContains(response, 'class="sidebar-close"')
+        self.assertContains(response, '&lt;')
+        self.assertNotContains(response, '<svg viewBox="0 0 24 24"')
         self.assertNotContains(response, 'Leitor conectado')
 
     def test_logout_ends_session(self):

@@ -18,8 +18,9 @@ class Element {
         this.selectCalls = 0;
         const classes = new Set();
         this.classList = {
+            add: name => classes.add(name),
             remove: name => classes.delete(name),
-            toggle: name => { if (classes.has(name)) { classes.delete(name); return false; } classes.add(name); return true; },
+            toggle: (name, force = !classes.has(name)) => { if (force) classes.add(name); else classes.delete(name); return force; },
             contains: name => classes.has(name),
         };
     }
@@ -29,6 +30,7 @@ class Element {
     append(...nodes) { this.children.push(...nodes); }
     replaceChildren(...nodes) { this.text = ''; this.children = nodes; }
     setAttribute(name, value) { this.attributes[name] = value; }
+    removeAttribute(name) { delete this.attributes[name]; }
     contains(node) { return node === this || this.children.some(child => child.contains(node)); }
     addEventListener(name, callback) { this.listeners[name] = callback; }
     focus() {
@@ -43,7 +45,7 @@ class Element {
     select() { this.selectCalls += 1; this.selected = true; }
 }
 
-function setup({legacy = false, animation = false} = {}) {
+function setup({legacy = false, animation = false, mobile = true} = {}) {
     const input = new Element('input');
     const form = new Element('form');
     form.dataset = {apiUrl: '/api/exemplares/codigo/CODIGO/', detailUrl: '/acervo/item/0/',
@@ -58,8 +60,15 @@ function setup({legacy = false, animation = false} = {}) {
     const steps = [1, 2, 3, 4].map(() => new Element('li'));
     const newScan = new Element('button');
     newScan.hidden = true;
-    const shell = legacy ? {'menu-toggler': new Element('button'), sidebar: new Element('aside'),
+    const shell = legacy ? {'menu-toggler': new Element('button'), 'sidebar-close': new Element('button'), sidebar: new Element('aside'),
         'data-atual': new Element('span'), 'contador-acervo': new Element('span')} : {};
+    const menuLink = new Element('a');
+    if (legacy) {
+        shell.sidebar.append(shell['sidebar-close'], menuLink);
+        shell.sidebar.querySelector = () => menuLink;
+    }
+    const media = {matches: mobile, addEventListener(name, callback) { this.onchange = callback; }};
+    const resize = matches => { media.matches = matches; media.onchange?.(); };
     const requests = [];
     const timers = new Map();
     let timerId = 0;
@@ -77,9 +86,10 @@ function setup({legacy = false, animation = false} = {}) {
         createElement(tag) { const node = new Element(tag); node.ownerDocument = this; return node; },
         createTextNode: text => { const node = new Element('#text'); node.textContent = text; return node; },
     };
-    for (const node of [input, form, mode, results, status, heading, newScan, ...steps, ...Object.values(shell)]) node.ownerDocument = document;
+    for (const node of [input, form, mode, results, status, heading, newScan, menuLink, ...steps, ...Object.values(shell)]) node.ownerDocument = document;
     vm.runInNewContext(source, {document, fetch, URL, Intl, AbortController, DOMException, TypeError, SyntaxError,
         window: {fetch, AbortController, location: {href: 'http://localhost/codigo-barras/'},
+            matchMedia: () => media,
             ...(animation ? {requestAnimationFrame: callback => { frames.set(++frameId, callback); return frameId; }, cancelAnimationFrame: id => frames.delete(id)} : {}),
             setTimeout: callback => { timers.set(++timerId, callback); return timerId; },
             clearTimeout: id => timers.delete(id)}});
@@ -98,7 +108,7 @@ function setup({legacy = false, animation = false} = {}) {
         input.listeners.input?.();
     };
     const paintFrame = () => { const entries = [...frames.values()]; frames.clear(); entries.forEach(callback => callback()); };
-    return {input, form, mode, document, results, status, heading, requests, timers, submit, type, shell, steps, newScan, paintFrame};
+    return {input, form, mode, document, results, status, heading, requests, timers, submit, type, shell, steps, newScan, paintFrame, menuLink, resize};
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
 const respond = (request, data, status = 200) => request.resolve({status, ok: status < 400, json: async () => data});
@@ -109,6 +119,132 @@ const currentStep = ui => ui.steps.findIndex(node => node.attributes['aria-curre
 const actionNamed = (ui, text) => descendants(ui.results).find(node => node.textContent === text && ['button', 'a'].includes(node.tag));
 const externalEdition = (title = 'Edição real') => ({tipo: 'CD', titulo: title, ean: '7891234567895',
     artista_diretor: 'Autor', cadastro_url: '/acervo/cadastrar/?leitura=opaque-token&codigo=7891234567895&modo=ean'});
+
+test('mobile menu restores focus on Escape and allows Tab to leave without a trap', () => {
+    const ui = setup({legacy: true});
+    const toggle = ui.shell['menu-toggler'];
+    const sidebar = ui.shell.sidebar;
+    const escape = () => {
+        let prevented = false;
+        ui.document.emit('keydown', {key: 'Escape', preventDefault() { prevented = true; }});
+        return prevented;
+    };
+    assert.equal(sidebar.inert, true);
+    assert.equal(escape(), false);
+    assert.equal(ui.document.activeElement, ui.input);
+    toggle.listeners.click();
+    assert.equal(sidebar.inert, false);
+    assert.equal(toggle.attributes['aria-expanded'], 'true');
+    assert.equal(ui.document.activeElement, ui.menuLink);
+    assert.equal(escape(), true);
+    assert.equal(sidebar.inert, true);
+    assert.equal(ui.document.activeElement, toggle);
+    toggle.listeners.click();
+    ui.input.focus();
+    assert.equal(sidebar.inert, true);
+    assert.equal(toggle.attributes['aria-expanded'], 'false');
+    assert.equal(ui.document.activeElement, ui.input);
+});
+
+test('close button shares Escape closing and focus behavior', () => {
+    const ui = setup({legacy: true});
+    const toggle = ui.shell['menu-toggler'];
+    const close = ui.shell['sidebar-close'];
+    const sidebar = ui.shell.sidebar;
+    toggle.listeners.click();
+    close.focus();
+    close.listeners.click();
+    assert.equal(sidebar.classList.contains('aberto'), false);
+    assert.equal(sidebar.inert, true);
+    assert.equal(toggle.attributes['aria-expanded'], 'false');
+    assert.equal(ui.document.activeElement, toggle);
+    toggle.listeners.click();
+    close.focus();
+    ui.document.emit('keydown', {key: 'Escape', preventDefault() {}});
+    assert.equal(sidebar.inert, true);
+    assert.equal(ui.document.activeElement, toggle);
+    toggle.listeners.click();
+    close.focus();
+    ui.resize(false);
+    assert.equal(sidebar.inert, false);
+    assert.equal(ui.document.activeElement, ui.menuLink);
+    close.listeners.click();
+    assert.equal(ui.document.activeElement, ui.menuLink);
+    assert.equal(sidebar.inert, false);
+    ui.resize(true);
+    assert.equal(sidebar.inert, true);
+});
+
+test('breakpoint changes keep desktop navigation available and never hide the focused menu link', () => {
+    const ui = setup({legacy: true, mobile: false});
+    const toggle = ui.shell['menu-toggler'];
+    const sidebar = ui.shell.sidebar;
+    assert.equal(sidebar.inert, false);
+    ui.menuLink.focus();
+    ui.document.emit('keydown', {key: 'Escape', preventDefault() { assert.fail('Desktop Escape must not be captured'); }});
+    assert.equal(ui.document.activeElement, ui.menuLink);
+    ui.resize(true);
+    assert.equal(sidebar.inert, true);
+    assert.equal(ui.document.activeElement, toggle);
+    ui.resize(false);
+    assert.equal(sidebar.inert, false);
+    assert.equal(ui.document.activeElement, ui.menuLink);
+    ui.resize(true);
+    toggle.listeners.click();
+    ui.resize(false);
+    assert.equal(sidebar.inert, false);
+    assert.equal(sidebar.classList.contains('aberto'), false);
+    assert.equal(toggle.attributes['aria-expanded'], 'false');
+    assert.equal(ui.document.activeElement, ui.menuLink);
+});
+
+test('closed menu leaves scanner Escape and returning to the input with Tab available', async () => {
+    const ui = setup({legacy: true});
+    ui.submit('MT1');
+    ui.document.emit('keydown', {key: 'Escape', target: ui.input,
+        preventDefault() { assert.fail('Closed menu must not capture Escape'); }});
+    assert.equal(ui.document.activeElement, ui.input);
+    assert.equal(ui.requests[1].options.signal.aborted, true);
+    assert.equal(ui.form.attributes['data-state'], 'idle');
+    ui.submit('MT2');
+    respond(ui.requests[2], item('MT2'));
+    await flush();
+    assert.equal(ui.document.activeElement, ui.input);
+    const reset = actionNamed(ui, 'Nova leitura');
+    reset.focus();
+    ui.document.emit('keydown', {key: 'Tab', shiftKey: true, target: reset});
+    ui.input.focus();
+    assert.equal(ui.form.attributes['data-state'], 'idle');
+    assert.equal(ui.input.value, 'MT2');
+    assert.equal(ui.document.activeElement, ui.input);
+});
+
+test('cover announces the fallback on failure and only the image alternative after loading', async () => {
+    for (const outcome of ['load', 'error']) {
+        const ui = setup();
+        ui.submit('MT1');
+        const data = item();
+        data.produto_detalhe = {titulo: 'Álbum', tipo: 'CD', capa_url: 'https://example.org/cover.jpg'};
+        respond(ui.requests[0], data);
+        await flush();
+        const cover = descendants(ui.results).find(node => node.attributes.role === 'img');
+        const image = cover.children.find(node => node.tag === 'img');
+        assert.equal(cover.attributes['aria-label'], 'Capa não disponível');
+        assert.equal(image.hidden, true);
+        assert.equal(image.loading, 'eager');
+        image.listeners[outcome]();
+        if (outcome === 'load') {
+            assert.equal(cover.attributes.role, undefined);
+            assert.equal(cover.attributes['aria-label'], undefined);
+            assert.equal(image.hidden, false);
+            assert.equal(image.alt, 'Capa de Álbum');
+        } else {
+            assert.equal(cover.attributes.role, 'img');
+            assert.equal(cover.attributes['aria-label'], 'Capa não disponível');
+            assert.equal(image.hidden, true);
+        }
+    }
+});
 
 test('only one main card is presented from loading to external success and reset', async () => {
     const ui = setup();
@@ -632,7 +768,7 @@ test('menu, counter, date and original focus behavior continue working together'
     ui.document.emit('click', {target: ui.input});
     assert.equal(sidebar.classList.contains('aberto'), false);
     toggle.listeners.click();
-    ui.document.emit('keydown', {key: 'Escape'});
+    ui.document.emit('keydown', {key: 'Escape', preventDefault() {}});
     assert.equal(toggle.attributes['aria-expanded'], 'false');
     assert.equal(ui.document.activeElement, toggle);
     const selections = ui.input.selectCalls;

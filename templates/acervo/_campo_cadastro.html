@@ -1,5 +1,6 @@
 <div class="campo-formulario {% if field.name == 'descricao' %}campo-largo{% endif %}">
     <label for="{{ field.id_for_label }}">{{ label }}</label>
     {{ field }}
-    {% if field.errors %}<div id="{{ field.auto_id }}_error" class="erro-campo" role="alert">{{ field.errors }}</div>{% endif %}
+    {% if field.help_text %}<span id="{{ field.auto_id }}_helptext" class="texto-secundario">{{ field.help_text }}</span>{% endif %}
+    {% if field.errors %}<div class="erro-campo" role="alert">{{ field.errors }}</div>{% endif %}
 </div>

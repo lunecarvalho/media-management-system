@@ -2,7 +2,8 @@
 <div class="campo-formulario {% if field.name == 'descricao' %}campo-largo{% endif %}">
     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
     {{ field }}
-    {% for error in field.errors %}<span class="erro-campo">{{ error }}</span>{% endfor %}
+    {% if field.help_text %}<span id="{{ field.auto_id }}_helptext" class="texto-secundario">{{ field.help_text }}</span>{% endif %}
+    {% if field.errors %}<div id="{{ field.auto_id }}_error" role="alert">{% for error in field.errors %}<span class="erro-campo">{{ error }}</span>{% endfor %}</div>{% endif %}
 </div>
 {% endfor %}
 {% if not form.instance.pk %}
