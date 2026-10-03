@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎬 MediaTrack
+# 💿 MediaTrack
 
 Sistema web para **catalogação, organização e gerenciamento de CDs e DVDs**, desenvolvido com Django como parte do **Projeto Integrador II da UNIVESP**.
 

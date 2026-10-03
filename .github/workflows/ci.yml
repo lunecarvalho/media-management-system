@@ -43,6 +43,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Testes JavaScript
+        run: node --test acervo/tests/js/barcode.test.cjs acervo/tests/js/cadastro-item.test.cjs
       - uses: actions/setup-python@v5
         with:
           python-version-file: .python-version

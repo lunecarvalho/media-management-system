@@ -83,9 +83,15 @@ Depois de aplicar as migrações e disponibilizar `datasets/bd_model-criacao.sql
 python manage.py importar_filmes
 ```
 
-A pasta datasets é ignorada pelo Git: obtenha o arquivo do grupo em instalações novas.
-Não execute o SQL diretamente. Repetir o comando ignora dados idênticos e atualiza
-referências alteradas, sem modificar produtos/exemplares já cadastrados.
+O arquivo `datasets/bd_model-criacao.sql` está versionado e contém a base auxiliar
+local de referências de DVDs; os demais arquivos de `datasets/` permanecem ignorados
+pelo Git. O dataset não faz parte da imagem Docker de produção nem do ZIP padrão
+de deploy do Elastic Beanstalk. Quando desejada, a importação é um procedimento
+operacional separado: disponibilize o arquivo ao comando Django, que persiste os
+dados via ORM. O runtime normal não executa esse SQL diretamente. A aplicação
+funciona sem a importação, mas a identificação local dos DVDs dessa base fica
+indisponível. Repetir o comando ignora dados idênticos e atualiza referências
+alteradas, sem modificar produtos/exemplares já cadastrados.
 
 Testes dessa integração (MusicBrainz simulado):
 

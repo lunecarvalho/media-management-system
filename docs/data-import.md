@@ -24,9 +24,15 @@ EAN/título/ano para DVDs; um EAN conhecido da base de DVDs tem prioridade tamb�
 
 ## Carregar a base de DVDs
 
-Fonte: `datasets/bd_model-criacao.sql`, fornecida pelo grupo. Coloque esse arquivo
-na instalação: `datasets/` permanece ignorada pelo Git e excluída do pacote Docker/EB.
-Não é necessário nem recomendado executar o SQL diretamente.
+Fonte: `datasets/bd_model-criacao.sql`, fornecida pelo grupo e versionada no
+repositório. É a base auxiliar local de referências de DVDs; os demais arquivos
+de `datasets/` permanecem ignorados pelo Git. O dataset não faz parte da imagem
+Docker de produção nem do ZIP padrão de deploy do Elastic Beanstalk.
+O runtime normal não executa esse SQL diretamente: o comando Django abaixo lê o
+arquivo e persiste os dados via ORM. A aplicação funciona sem essa importação,
+mas a identificação local dos DVDs dessa base fica indisponível. Quando desejada,
+a importação é um procedimento operacional separado, com o arquivo disponibilizado
+ao comando. Não é necessário nem recomendado executar o SQL diretamente.
 
 ```text
 python manage.py migrate
