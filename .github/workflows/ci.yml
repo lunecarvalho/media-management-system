@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '24'
       - name: Testes JavaScript
@@ -61,7 +61,7 @@ jobs:
           python -m zipfile -e dist/mediatrack.zip bundle-check
           docker build -t mediatrack-ci bundle-check
           docker run --rm mediatrack-ci python -c "import gunicorn; import psycopg; import django"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: mediatrack-source
           path: dist/mediatrack.zip
