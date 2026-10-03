@@ -36,11 +36,11 @@ jobs:
       RDS_CA_BUNDLE_URL: ${{ vars.RDS_CA_BUNDLE_URL }}
       VERSION: mediatrack-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version-file: .python-version
       - name: Conferir configuração explícita

@@ -27,8 +27,8 @@ jobs:
       DJANGO_SETTINGS_MODULE: config.test_settings
       TEST_DATABASE_URL: ${{ matrix.database == 'postgres' && 'postgresql://mediatrack:ci-only-password@localhost:5432/mediatrack_ci' || '' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version-file: .python-version
           cache: pip
@@ -42,13 +42,13 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
       - name: Testes JavaScript
         run: node --test acervo/tests/js/barcode.test.cjs acervo/tests/js/cadastro-item.test.cjs
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version-file: .python-version
           cache: pip
