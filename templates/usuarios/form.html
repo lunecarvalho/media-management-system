@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block titulo %}{% if usuario %}Editar usuário{% else %}Novo usuário{% endif %} - MediaTrack{% endblock %}
+{% block titulo_pagina %}{% if usuario %}Editar usuário{% else %}Novo usuário{% endif %}{% endblock %}
+{% block descricao_pagina %}Gerencie os dados e o acesso ao MediaTrack.{% endblock %}
+
+{% block conteudo %}
+<form method="post" class="card formulario-item">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="formulario-acoes">
+        <a href="{% url 'usuarios:lista' %}" class="btn btn-secundaria">Cancelar</a>
+        <button type="submit" class="btn btn-primaria">Salvar</button>
+    </div>
+</form>
+{% endblock %}

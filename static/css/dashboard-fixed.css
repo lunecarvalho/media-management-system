@@ -475,6 +475,30 @@
   gap: 24px;
 }
 
+.grade-configuracoes {
+  max-width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grade-configuracoes > .card h2 {
+  margin-bottom: 10px;
+}
+
+.grade-configuracoes > .card p + p {
+  margin-top: 14px;
+}
+
+.grade-configuracoes > .card p + .btn {
+  align-self: flex-start;
+  margin-top: 18px;
+}
+
+@media (max-width: 1100px) {
+  .grade-configuracoes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .formulario-empilhado {
   display: grid;
   gap: 16px;

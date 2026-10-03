@@ -9,12 +9,19 @@
     <section class="card">
         <h2>Leitor de código de barras</h2>
         <p class="texto-secundario">Status atual do dispositivo configurado para leitura de itens.</p>
-        <p>O leitor deve estar configurado em modo teclado, com Enter ao final da leitura. O aplicativo não detecta a conexão física.</p>
+        <p>O MediaTrack aceita leitores configurados em modo teclado. O leitor deve enviar o código de barras seguido de Enter para realizar a consulta.</p>
     </section>
     <section class="card">
         <h2>Dados do acervo</h2>
         <p class="texto-secundario">Gerencie CDs, DVDs, categorias, movimentações e usuários pelas áreas correspondentes do menu.</p>
         <a href="{% url 'acervo:lista' %}" class="btn btn-secundaria">Abrir acervo</a>
     </section>
+    {% if user.is_superuser or user.perfil.tipo == 'proprietario' %}
+    <section class="card">
+        <h2>Gerenciamento de usuários</h2>
+        <p class="texto-secundario">Gerencie os usuários com acesso ao MediaTrack, seus dados e permissões.</p>
+        <a href="{% url 'usuarios:lista' %}" class="btn btn-secundaria">Gerenciar usuários</a>
+    </section>
+    {% endif %}
 </div>
 {% endblock %}

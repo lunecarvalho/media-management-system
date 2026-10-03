@@ -12,11 +12,11 @@
     <div class="tabela-wrapper">
         <div class="tabela-header flex-entre">
             <h2 class="tabela-titulo">Usuários cadastrados</h2>
-            <a href="/admin/auth/user/add/" class="btn btn-primaria">Novo usuário</a>
+            <a href="{% url 'usuarios:criar' %}" class="btn btn-primaria">Novo usuário</a>
         </div>
         <div class="tabela-container">
             <table>
-                <thead><tr><th>Usuário</th><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th></tr></thead>
+                <thead><tr><th>Usuário</th><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody>
                     {% for usuario in usuarios %}
                     <tr>
@@ -25,9 +25,13 @@
                         <td>{{ usuario.email|default:"-" }}</td>
                         <td>{% if usuario.perfil %}{{ usuario.perfil.get_tipo_display }}{% else %}Sem perfil{% endif %}</td>
                         <td><span class="badge {% if usuario.is_active %}badge-disponivel{% else %}badge-vendido{% endif %}">{% if usuario.is_active %}Ativo{% else %}Inativo{% endif %}</span></td>
+                        <td>
+                            <a href="{% url 'usuarios:editar' usuario.pk %}" class="btn btn-secundaria btn-pequeno" aria-label="Editar usuário {{ usuario.username }}">Editar</a>
+                            <a href="{% url 'usuarios:excluir' usuario.pk %}" class="btn btn-aviso btn-pequeno" aria-label="Remover usuário {{ usuario.username }}">Remover</a>
+                        </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="5" class="texto-centro texto-secundario">Nenhum usuário cadastrado.</td></tr>
+                    <tr><td colspan="6" class="texto-centro texto-secundario">Nenhum usuário cadastrado.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

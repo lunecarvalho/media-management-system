@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block titulo %}Remover usuário - MediaTrack{% endblock %}
+{% block titulo_pagina %}Remover usuário{% endblock %}
+{% block descricao_pagina %}Confirme a remoção do acesso ao MediaTrack.{% endblock %}
+
+{% block conteudo %}
+<section class="card">
+    <h2>Confirmar remoção</h2>
+    {% if erro %}
+        <p role="alert">{{ erro }}</p>
+        <a href="{% url 'usuarios:lista' %}" class="btn btn-secundaria">Voltar</a>
+    {% else %}
+        <p>Deseja remover o usuário <strong>{{ usuario.get_username }}</strong>?</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="formulario-acoes">
+                <a href="{% url 'usuarios:lista' %}" class="btn btn-secundaria">Cancelar</a>
+                <button type="submit" class="btn btn-aviso">Remover usuário</button>
+            </div>
+        </form>
+    {% endif %}
+</section>
+{% endblock %}

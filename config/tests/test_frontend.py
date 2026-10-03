@@ -45,6 +45,29 @@ class FrontendTests(TestCase):
         self.assertEqual(self.client.post('/usuarios/logout/').status_code, 302)
         self.assertEqual(self.client.get('/acervo/').status_code, 302)
 
+    def test_user_management_card_matches_user_permission(self):
+        response = self.client.get('/configuracoes/')
+        self.assertNotContains(response, 'Gerenciamento de usuários')
+
+        for role in ('funcionario', 'administrador'):
+            user = User.objects.create_user(role)
+            Perfil.objects.create(usuario=user, tipo=role)
+            self.client.force_login(user)
+            with self.subTest(role=role):
+                response = self.client.get('/configuracoes/')
+                self.assertNotContains(response, 'Gerenciamento de usuários')
+
+        owner = User.objects.create_user('owner')
+        Perfil.objects.create(usuario=owner, tipo='proprietario')
+        self.client.force_login(owner)
+        response = self.client.get('/configuracoes/')
+        self.assertContains(response, 'Gerenciamento de usuários')
+        self.assertContains(response, 'href="/usuarios/lista/"')
+
+        superuser = User.objects.create_superuser('superuser')
+        self.client.force_login(superuser)
+        self.assertContains(self.client.get('/configuracoes/'), 'Gerenciamento de usuários')
+
     def test_registration_and_catalog_have_exclusive_active_menu(self):
         for route in ('acervo:cadastrar', 'acervo:lista', 'codigo_barras'):
             with self.subTest(route=route):
