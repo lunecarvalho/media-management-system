@@ -62,7 +62,7 @@ jobs:
           python -m zipfile -e dist/mediatrack.zip bundle-final
           docker build -t mediatrack-release bundle-final
           docker run --rm mediatrack-release python -c "import ssl; ssl.create_default_context(cafile='/app/certs/rds-ca.pem')"
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
