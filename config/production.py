@@ -1,5 +1,6 @@
 """Entrada obrigatória para a aplicação de produção (AWS)."""
 import os
+from decouple import config
 from django.core.exceptions import ImproperlyConfigured
 
 for name in ('DEBUG', 'SECRET_KEY', 'DATABASE_URL', 'ALLOWED_HOSTS'):
@@ -35,6 +36,8 @@ if not ALLOWED_HOSTS or '*' in ALLOWED_HOSTS:
 if any(host.startswith('.') or '/' in host or '*' in host for host in ALLOWED_HOSTS):
     raise ImproperlyConfigured('ALLOWED_HOSTS deve conter hosts exatos, sem esquema, caminho ou wildcard.')
 SECURE_SSL_REDIRECT = True
+if config('TRUST_PROXY_HEADERS', default=False, cast=bool):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_CLOUDFRONT_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_REDIRECT_EXEMPT = [r'^health/$']

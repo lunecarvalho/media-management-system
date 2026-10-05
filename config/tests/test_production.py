@@ -18,13 +18,44 @@ class ProductionTests(SimpleTestCase):
         for timeout in ('0', '-1', '31', 'invalid'):
             url = 'postgresql://user:pass@localhost/db?sslmode=verify-full&sslrootcert=system&connect_timeout=' + timeout
             self.assertNotEqual(self.check_config(DATABASE_URL=url).returncode, 0)
-    def check_config(self, **overrides):
+    def check_config(self, code='import django; django.setup()', **overrides):
         env = dict(os.environ, DJANGO_SETTINGS_MODULE='config.production', DEBUG='False',
             SECRET_KEY='unit-test-only-' + 'x' * 60, DATABASE_URL='', DB_HOST='', ALLOWED_HOSTS='example.com',
             CSRF_TRUSTED_ORIGINS='', CORS_ALLOWED_ORIGINS='')
         env.update(overrides)
-        return subprocess.run([sys.executable, '-B', '-c', 'import django; django.setup()'],
+        return subprocess.run([sys.executable, '-B', '-c', code],
             env=env, capture_output=True, text=True, timeout=20)
+
+    def test_cloudfront_proxy_header_and_mandatory_https_protections(self):
+        for trusted in ('True', 'False'):
+            with self.subTest(TRUST_PROXY_HEADERS=trusted):
+                code = '''
+import django
+django.setup()
+from django.conf import settings
+from django.test import RequestFactory
+from django.middleware.security import SecurityMiddleware
+from django.http import HttpResponse
+import os
+trusted = os.environ['TRUST_PROXY_HEADERS'] == 'True'
+expected = ('HTTP_CLOUDFRONT_FORWARDED_PROTO', 'https') if trusted else None
+assert settings.SECURE_PROXY_SSL_HEADER == expected
+assert settings.SECURE_SSL_REDIRECT is True
+assert settings.SESSION_COOKIE_SECURE is True
+assert settings.CSRF_COOKIE_SECURE is True
+assert settings.SECURE_REDIRECT_EXEMPT == [r'^health/$']
+middleware = SecurityMiddleware(lambda request: HttpResponse())
+request = RequestFactory().get('/', HTTP_HOST='example.com', HTTP_CLOUDFRONT_FORWARDED_PROTO='https', HTTP_X_FORWARDED_PROTO='http')
+assert request.is_secure() is trusted
+assert middleware(request).status_code == (200 if trusted else 301)
+request = RequestFactory().get('/', HTTP_HOST='example.com', HTTP_CLOUDFRONT_FORWARDED_PROTO='http', HTTP_X_FORWARDED_PROTO='https')
+assert request.is_secure() is False
+assert middleware(request).status_code == 301
+'''
+                result = self.check_config(code=code, TRUST_PROXY_HEADERS=trusted,
+                    SECURE_SSL_REDIRECT='False',
+                    DATABASE_URL='postgresql://user:pass@localhost/db?sslmode=verify-full&sslrootcert=system')
+                self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_production_rejects_sqlite(self):
         result = self.check_config(DATABASE_URL='sqlite:///:memory:')
