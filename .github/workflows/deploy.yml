@@ -20,7 +20,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
   deploy:
     needs: validate
-    if: github.repository == 'lunecarvalho/media-management-system' && vars.AWS_DEPLOY_ENABLED == 'true' && inputs.confirm && inputs.database_ready && github.ref == 'refs/heads/main'
+    if: github.repository == 'lunecarvalho/media-management-system' && inputs.confirm && inputs.database_ready && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: aws-production
@@ -36,6 +36,14 @@ jobs:
       RDS_CA_BUNDLE_URL: ${{ vars.RDS_CA_BUNDLE_URL }}
       VERSION: mediatrack-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
+      - name: Validar habilitação do deploy AWS
+        env:
+          AWS_DEPLOY_ENABLED: ${{ vars.AWS_DEPLOY_ENABLED }}
+        run: |
+          if [ "$AWS_DEPLOY_ENABLED" != 'true' ]; then
+            echo "::error::AWS_DEPLOY_ENABLED deve ser 'true' no environment aws-production."
+            exit 1
+          fi
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}
