@@ -1,0 +1,62 @@
+name: MediaTrack controlled recovery (existing version only)
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Autorizar uma atualização da versão fixa, sem rollback automático'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: aws-production
+  cancel-in-progress: false
+jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+  recover:
+    needs: validate
+    if: github.repository == 'lunecarvalho/media-management-system' && github.ref == 'refs/heads/main' && inputs.confirm
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: aws-production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: .python-version
+      - name: Conferir habilitação operacional
+        env:
+          AWS_DEPLOY_ENABLED: ${{ vars.AWS_DEPLOY_ENABLED }}
+        run: test "$AWS_DEPLOY_ENABLED" = 'true'
+      - uses: aws-actions/configure-aws-credentials@v6.3.0
+        id: aws
+        with:
+          role-to-assume: arn:aws:iam::167529901671:role/MediaTrackGitHubDeployRole
+          aws-region: sa-east-1
+          allowed-account-ids: '167529901671'
+          role-session-name: mediatrack-recovery-${{ github.run_id }}
+          role-duration-seconds: 3600
+      - name: Recuperar versão fixa uma única vez e verificar funcionamento
+        run: python scripts/recover_eb.py --execute
+      - name: Coletar diagnóstico sanitizado
+        if: always() && steps.aws.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 3
+        run: python scripts/collect_eb_diagnostics.py --application MediaTrack --environment mediatrack-production --version mediatrack-53075e0d70d8ef688b0a2cf6fe808f3454e728a3-37460072449-1 --region sa-east-1 --before "$RUNNER_TEMP/eb-before.json" --output "$RUNNER_TEMP/eb-diagnostics.json"
+      - uses: actions/upload-artifact@v6
+        if: always() && steps.aws.outcome == 'success'
+        continue-on-error: true
+        with:
+          name: eb-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/eb-diagnostics.json
+            ${{ runner.temp }}/eb-recovery.json
+          retention-days: 7
+          if-no-files-found: warn

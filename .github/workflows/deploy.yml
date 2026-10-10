@@ -71,6 +71,7 @@ jobs:
           docker build -t mediatrack-release bundle-final
           docker run --rm mediatrack-release python -c "import ssl; ssl.create_default_context(cafile='/app/certs/rds-ca.pem')"
       - uses: aws-actions/configure-aws-credentials@v6.3.0
+        id: aws
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -79,11 +80,31 @@ jobs:
         run: |
           aws elasticbeanstalk describe-environments --application-name "$EB_APPLICATION" --environment-names "$EB_ENVIRONMENT" --no-include-deleted > "$RUNNER_TEMP/eb-before.json"
           python scripts/validate_eb_environment.py "$RUNNER_TEMP/eb-before.json" --application "$EB_APPLICATION" --environment "$EB_ENVIRONMENT"
-      - name: Implantar somente no ambiente existente
+      - name: Enviar pacote e registrar versão
         run: |
           aws s3 cp dist/mediatrack.zip "s3://$EB_ARTIFACT_BUCKET/mediatrack/$VERSION.zip" --only-show-errors
           aws elasticbeanstalk create-application-version --application-name "$EB_APPLICATION" --version-label "$VERSION" --source-bundle "S3Bucket=$EB_ARTIFACT_BUCKET,S3Key=mediatrack/$VERSION.zip"
+      - name: Solicitar atualização do ambiente existente
+        id: update
+        run: |
           aws elasticbeanstalk update-environment --environment-name "$EB_ENVIRONMENT" --version-label "$VERSION"
+      - name: Aguardar atualização e validar versão ativa
+        run: |
           aws elasticbeanstalk wait environment-updated --environment-names "$EB_ENVIRONMENT"
           aws elasticbeanstalk describe-environments --application-name "$EB_APPLICATION" --environment-names "$EB_ENVIRONMENT" --no-include-deleted > "$RUNNER_TEMP/eb-after.json"
           python scripts/validate_eb_environment.py "$RUNNER_TEMP/eb-after.json" --application "$EB_APPLICATION" --environment "$EB_ENVIRONMENT" --version "$VERSION"
+      - name: Coletar diagnóstico sanitizado
+        if: always() && steps.aws.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          python scripts/collect_eb_diagnostics.py --application "$EB_APPLICATION" --environment "$EB_ENVIRONMENT" --version "$VERSION" --region "$AWS_REGION" --before "$RUNNER_TEMP/eb-before.json" --output "$RUNNER_TEMP/eb-diagnostics.json"
+      - name: Preservar diagnóstico do deploy
+        if: always() && steps.aws.outcome == 'success'
+        continue-on-error: true
+        uses: actions/upload-artifact@v6
+        with:
+          name: eb-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/eb-diagnostics.json
+          if-no-files-found: warn
+          retention-days: 7
