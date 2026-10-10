@@ -1,5 +1,11 @@
 # Docker e AWS — preparação sem implantação
 
+> **Arquivo histórico:** o conteúdo abaixo registra etapas anteriores e não representa
+> a estratégia atual de implantação. Datas, estados, autorizações e próximos passos
+> referem-se às etapas documentadas, não ao estado atual do projeto.
+> A plataforma escolhida é o Render; o deploy ainda não foi realizado.
+> Consulte o [guia atual do Render](../render.md).
+
 Roteiro complementar: [homologação, trust policy OIDC, permissões e rollback](aws-operations.md).
 O CI remoto anterior foi validado pelo mantenedor em SQLite, PostgreSQL e build.
 Isso não equivale à validação de RDS, proxy, OIDC ou aplicação no Elastic Beanstalk.

@@ -51,25 +51,45 @@ docker compose up --build
 
 O Compose padrão é exclusivamente de desenvolvimento: PostgreSQL 16, volume local e runserver. Executa migrações ao iniciar, portanto use somente banco de desenvolvimento. No Linux, ajuste LOCAL_UID e LOCAL_GID para permitir escrita no diretório montado. Não remova o volume para resolver falhas sem preservar seus dados.
 
-A imagem padrão usa Gunicorn como usuário sem privilégios. O Compose de produção é separado e exige configuração explícita: consulte [AWS](docs/aws.md). Docker não foi executado localmente nesta retomada.
+A imagem padrão usa Gunicorn como usuário sem privilégios e aceita `PORT`, com
+fallback 8000. O Render substitui o comando de início para executar migrações antes
+do Gunicorn; elas não rodam no build e uma falha impede o servidor de iniciar.
+Consulte o [guia principal de implantação no Render](docs/render.md).
+O Compose de produção existente é da configuração AWS legada, exige configuração
+explícita e não é um procedimento Render: consulte o [histórico AWS](docs/archive/aws.md).
+O build Docker e o Gunicorn real em Linux permanecem pendentes de validação.
+
+### Configurações de ambiente
+
+- `config.settings`: desenvolvimento, com SQLite quando `DATABASE_URL` e `DB_HOST`
+  estão vazios; use `DEBUG=True` somente localmente.
+- `config.render`: hospedagem escolhida; exige `DEBUG=False`, PostgreSQL, secrets
+  no ambiente, hosts exatos e origens HTTPS. Usa `X-Forwarded-Proto` do proxy Render.
+  TLS padrão `sslmode=require` criptografa sem autenticar CA/hostname; rejeita
+  modos que permitem conexão sem TLS. `verify-full` exige CA e endpoint compatíveis.
+- `config.production`: configuração AWS legada, ainda padrão da imagem; exige
+  PostgreSQL com `sslmode=verify-full` e `sslrootcert`. Sua política não foi
+  enfraquecida pela preparação Render. O Render deve definir explicitamente
+  `DJANGO_SETTINGS_MODULE=config.render`.
 
 ## Variáveis
 
 | Nome | Uso |
 | --- | --- |
-| DJANGO_SETTINGS_MODULE | config.settings local; config.production na imagem |
+| DJANGO_SETTINGS_MODULE | config.settings local; config.render no Render; config.production padrão da imagem/AWS legado |
 | DEBUG, SECRET_KEY, ALLOWED_HOSTS | Configuração básica; produção exige ambiente explícito |
-| DATABASE_URL | Conexão PostgreSQL; produção exige verify-full e CA |
+| DATABASE_URL | PostgreSQL: Render exige TLS require por padrão; AWS legado exige verify-full e CA |
 | DB_HOST, DB_NAME, DB_USER, DB_PASSWORD, DB_PORT, DB_ENGINE | Alternativa somente local |
 | TEST_DATABASE_URL | Banco isolado para executar testes PostgreSQL |
 | CSRF_TRUSTED_ORIGINS | Origens confiáveis, somente HTTPS em produção |
 | CORS_ALLOWED_ORIGINS | Vazio por padrão; habilitar somente se necessário |
-| TRUST_PROXY_HEADERS | Somente atrás de proxy controlado |
+| TRUST_PROXY_HEADERS | AWS legado: somente atrás de proxy controlado; Render configura seu próprio cabeçalho |
 | SECURE_SSL_REDIRECT, SECURE_HSTS_SECONDS | HTTPS; produção força redirecionamento |
 | MUSICBRAINZ_USER_AGENT | Identificação real e contato para o serviço |
 | DVD_DATASET_PATH | Caminho do SQL de DVDs; padrão datasets/bd_model-criacao.sql |
 | LOCAL_UID, LOCAL_GID | Usuário do Compose de desenvolvimento |
-| RDS_CA_PATH | Certificado público montado no Compose de produção |
+| RDS_CA_PATH | AWS legado: certificado público montado no Compose de produção |
+| PORT | Porta fornecida pelo Render; imagem usa fallback 8000 e comando Render usa 10000 |
 
 ## Metadados de CDs e DVDs
 
@@ -86,7 +106,7 @@ python manage.py importar_filmes
 O arquivo `datasets/bd_model-criacao.sql` está versionado e contém a base auxiliar
 local de referências de DVDs; os demais arquivos de `datasets/` permanecem ignorados
 pelo Git. O dataset não faz parte da imagem Docker de produção nem do ZIP padrão
-de deploy do Elastic Beanstalk. Quando desejada, a importação é um procedimento
+de deploy do Elastic Beanstalk (legado). Quando desejada, a importação é um procedimento
 operacional separado: disponibilize o arquivo ao comando Django, que persiste os
 dados via ORM. O runtime normal não executa esse SQL diretamente. A aplicação
 funciona sem a importação, mas a identificação local dos DVDs dessa base fica
@@ -106,19 +126,24 @@ acervo contém modelos, serviços transacionais, importação e leitor. moviment
 
 Não altere estoque diretamente via update/queryset sem o serviço: isso contornaria a auditoria. Documentação de [permissões](docs/architecture.md) e [integrações](docs/data-import.md) descreve os fluxos suportados.
 
-Os workflows estão separados: ci.yml valida, project-automation.yml reconcilia Issues do Project #3, deploy.yml prepara implantação manual com bloqueios. Não habilite CD nem automação remota sem revisar suas configurações e permissões.
+Os workflows estão separados: ci.yml valida e project-automation.yml reconcilia
+Issues do Project #3. deploy.yml e recover.yml pertencem ao histórico AWS, não ao
+procedimento Render. Não habilite CD nem automação remota sem revisar suas
+configurações e permissões. A implantação escolhida está em [Render](docs/render.md).
 
 ## Roadmap restante
 
 1. Reexecutar o CI após alterações: a matriz e o build anteriores já foram validados remotamente pelo mantenedor.
 2. Ensaiar migração de uma cópia dos dados reais e restauração de backup.
 3. Preservar a automação do Project #3, já validada remotamente pelo mantenedor.
-4. Revisar custos e segurança AWS; criar homologação somente após autorização.
+4. Validar o container em Linux/Docker e planejar PostgreSQL Free, região, secrets,
+   importação e backups; criar serviços Render somente após autorização.
 5. Validar HTTPS, logs, health check e fluxos reais antes de autorizar produção.
 6. Futuramente: armazenamento de capas, outras fontes de metadados e avaliação formal de acessibilidade.
 
 Não há alegação de conformidade WCAG ou de atualização automática do dashboard em tempo real.
 
-Preparação de homologação: [OIDC, permissões, custos e rollback](docs/aws-operations.md).
-Nenhum recurso AWS é criado por comandos de validação local. O deploy permanece
-manual, condicionado ao CI, à variável de ativação e à aprovação do Environment.
+Próxima etapa: [Fase 2 no Render](docs/render.md). Nenhum serviço ou banco Render
+foi criado e nenhum deploy Render foi realizado. O primeiro deploy exige aprovação.
+O [roteiro AWS arquivado](docs/archive/aws-operations.md) é referência histórica;
+suas variáveis de ativação e Environment não controlam a implantação Render.

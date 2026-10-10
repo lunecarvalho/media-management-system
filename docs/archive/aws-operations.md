@@ -1,5 +1,11 @@
 # Homologação, OIDC e rollback — roteiro ainda não executado
 
+> **Arquivo histórico:** o conteúdo abaixo registra etapas anteriores e não representa
+> a estratégia atual de implantação. Datas, estados, autorizações e próximos passos
+> referem-se às etapas documentadas, não ao estado atual do projeto.
+> A plataforma escolhida é o Render; o deploy ainda não foi realizado.
+> Consulte o [guia atual do Render](../render.md).
+
 Este documento não provisiona recursos. O mantenedor deve aprovar custos e operação
 antes de qualquer uso do console/CLI AWS. A aplicação já possui Docker, Gunicorn,
 WhiteNoise e PostgreSQL com TLS; não existe ambiente AWS validado nesta Issue.

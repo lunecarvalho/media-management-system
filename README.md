@@ -10,7 +10,7 @@ Sistema web para **catalogação, organização e gerenciamento de CDs e DVDs**,
 ![Django](https://img.shields.io/badge/Django-5.2-092E20?style=for-the-badge&logo=django&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Production-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![AWS](https://img.shields.io/badge/AWS-Deployment-FF9900?style=for-the-badge&logo=amazonwebservices&logoColor=white)
+![Render](https://img.shields.io/badge/Render-Planejado-000000?style=for-the-badge&logo=render&logoColor=white)
 
 </div>
 
@@ -84,8 +84,8 @@ Isso permite, por exemplo, que duas cópias do mesmo DVD possuam preços, estado
 | Container | Docker |
 | Servidor | Gunicorn |
 | Arquivos estáticos | WhiteNoise |
-| CI/CD | GitHub Actions |
-| Cloud | AWS Elastic Beanstalk · Amazon RDS |
+| CI | GitHub Actions |
+| Hospedagem escolhida | Render Free · PostgreSQL Render Free (criação pendente) |
 | Design | Figma |
 | Versionamento | Git · GitHub |
 
@@ -161,22 +161,20 @@ O pipeline de **Continuous Integration** executa validações utilizando:
 - validação do pacote de produção
 - build Docker
 
-O deploy permanece **manual e protegido**, evitando a criação ou alteração acidental de infraestrutura.
+O deploy no Render será **manual**, conforme o [guia de implantação](docs/render.md).
+Os workflows AWS existentes são legados e não fazem parte desse procedimento.
 
 ---
 
 ## Arquitetura de produção
 
-A arquitetura preparada para produção segue o fluxo:
+A arquitetura planejada para o Render segue o fluxo; ainda não está implantada:
 
 ```text
 GitHub
    │
    ▼
-GitHub Actions
-   │
-   ▼
-AWS Elastic Beanstalk
+Render Web Service Free (deploy manual)
    │
    ▼
 Docker + Gunicorn
@@ -185,13 +183,17 @@ Docker + Gunicorn
 Django
    │
    ▼
-Amazon RDS PostgreSQL
+Render PostgreSQL Free (criação futura)
 ```
 
-A conexão com o PostgreSQL em produção é preparada para utilizar **TLS com verificação de certificado**.
+A configuração `config.render` exige PostgreSQL e utiliza TLS `sslmode=require`
+por padrão: criptografa a conexão, sem verificar CA/hostname. A política AWS
+legada em `config.production` permanece com `verify-full` e CA, isolada do Render.
 
 > [!NOTE]
-> A infraestrutura AWS ainda não foi provisionada e nenhum deploy de produção foi executado.
+> O Render foi escolhido estrategicamente após falhas de implantação no Elastic Beanstalk.
+> A preparação inicial foi validada; nenhum serviço ou banco Render foi
+> criado e o deploy no Render ainda não foi realizado.
 
 ---
 
@@ -202,9 +204,15 @@ A documentação técnica detalhada está organizada separadamente:
 - [Instalação e ambiente de desenvolvimento](DEVELOPMENT.md)
 - [Arquitetura, permissões e migrações](docs/architecture.md)
 - [Importação CSV e fontes de metadados](docs/data-import.md)
-- [Docker e AWS](docs/aws.md)
-- [Operações AWS, homologação e rollback](docs/aws-operations.md)
+- [Hospedagem no Render e plano da Fase 2](docs/render.md)
 - [Automação do GitHub Project](docs/github-project.md)
+
+Histórico técnico, sem instruções de implantação vigentes:
+
+- [Preparação Docker e AWS](docs/archive/aws.md)
+- [Operações AWS, homologação e rollback](docs/archive/aws-operations.md)
+- [Investigação e recuperação AWS](docs/archive/aws-deploy-investigation.md)
+- [Inventário histórico do workspace](docs/archive/changed-files.md)
 
 ---
 
@@ -222,7 +230,9 @@ O MediaTrack está em desenvolvimento ativo.
 
 Atualmente, a aplicação possui a arquitetura principal, autenticação, gerenciamento do acervo, API REST, integrações, testes automatizados e pipeline de CI configurados.
 
-As próximas etapas envolvem a preparação do ambiente de homologação e a validação da infraestrutura AWS.
+As próximas etapas são validar o container em Linux/Docker, definir a região e o
+procedimento de dados/backups, criar o PostgreSQL e o Web
+Service Free no Render.
 
 ---
 

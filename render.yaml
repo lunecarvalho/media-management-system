@@ -1,0 +1,25 @@
+# Preparação somente: não aplicar até aprovação da Fase 2. Não cria banco.
+services:
+  - type: web
+    name: mediatrack
+    runtime: docker
+    plan: free
+    branch: main
+    autoDeployTrigger: 'off'
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health/
+    # Free não possui preDeployCommand. Instância única, migrações antes do servidor.
+    dockerCommand: sh -c 'python manage.py migrate --noinput && exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-10000} --workers 2 --timeout 45 --access-logfile - --error-logfile -'
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.render
+      - key: DEBUG
+        value: 'False'
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false

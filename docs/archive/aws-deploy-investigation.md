@@ -1,6 +1,37 @@
 # Deploy de 06/10/2026: diagnóstico e preparação local
 
+> **Arquivo histórico:** o conteúdo abaixo registra etapas anteriores e não representa
+> a estratégia atual de implantação. Datas, estados, autorizações e próximos passos
+> referem-se às etapas documentadas, não ao estado atual do projeto.
+> A plataforma escolhida é o Render; o deploy ainda não foi realizado.
+> Consulte o [guia atual do Render](../render.md).
+
 ## Diagnóstico
+
+### Atualização histórica: tentativa de recuperação de 10/10/2026
+
+Foi relatada uma execução manual do workflow **MediaTrack controlled recovery
+(existing version only)** em 10/10/2026, reutilizando a versão
+`mediatrack-53075e0d70d8ef688b0a2cf6fe808f3454e728a3-37460072449-1`.
+Segundo as informações fornecidas pelo mantenedor, a autenticação OIDC foi
+concluída; a etapa `python scripts/recover_eb.py --execute` falhou após cerca de
+1 minuto e 13 segundos com a mensagem:
+
+```text
+Recuperação/preflight falhou; revisar estados e diagnóstico. Não repetir automaticamente.
+```
+
+As etapas de coleta de diagnóstico sanitizado e `actions/upload-artifact@v6`
+foram relatadas como concluídas com sucesso. Este registro não contém análise
+dos logs/artefatos dessa execução nem novos eventos AWS que permitam confirmar
+se `UpdateEnvironment` foi chamado ou se o Access Denied se repetiu nessa tentativa.
+A mensagem conjunta de recuperação/preflight, isoladamente, não distingue esses
+casos. Não há identificador dessa execução de 10/10 verificado neste registro;
+o run `37460072449` abaixo corresponde à falha original de 06/10.
+
+O objeto S3 negado e a causa específica do Access Denied original continuam
+inconclusivos. A decisão posterior foi migrar para o [Render](../render.md);
+os planos e autorizações AWS abaixo são históricos, não instruções vigentes.
 
 A causa raiz de `UpdateStack: ValidationException: S3 error: Access Denied`
 permanece inconclusiva. O ZIP foi lido com sucesso. O evento CloudFormation não

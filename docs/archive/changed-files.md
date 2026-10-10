@@ -1,5 +1,11 @@
 # Inventario do workspace recuperado
 
+> **Arquivo histórico:** o conteúdo abaixo registra etapas anteriores e não representa
+> a estratégia atual de implantação. Datas, estados, autorizações e próximos passos
+> referem-se às etapas documentadas, não ao estado atual do projeto.
+> A plataforma escolhida é o Render; o deploy ainda não foi realizado.
+> Consulte o [guia atual do Render](../render.md).
+
 Comparacao com o HEAD local; inclui implementacoes anteriores preservadas, nao somente esta retomada. Nenhum commit foi criado.
 
 ## Modificados

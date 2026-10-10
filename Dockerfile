@@ -11,4 +11,4 @@ RUN python manage.py collectstatic --noinput --settings=config.static_settings \
 USER mediatrack
 ENV DJANGO_SETTINGS_MODULE=config.production
 EXPOSE 8000
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "45", "--access-logfile", "-", "--error-logfile", "-"]
+CMD ["sh", "-c", "exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 45 --access-logfile - --error-logfile -"]
