@@ -1,7 +1,15 @@
-# MediaTrack no Render — Fase 1, preparação local
+# MediaTrack no Render — aplicação publicada
 
-Entrega acadêmica: **06/11/2026**. Nenhum serviço ou banco foi criado nesta fase.
-Não houve deploy, migração de produção, commit, push ou alteração AWS.
+**Aplicação online:** [MediaTrack](https://media-track-w5xm.onrender.com).
+Hospedagem: Render Free, com Docker, Django, Gunicorn e PostgreSQL 18.
+Entrega acadêmica: **06/11/2026**.
+
+O endereço é público e permite visualizar a tela de login. As páginas internas,
+a API e as funções administrativas exigem autenticação e permissões, conforme a
+[política de acesso](architecture.md#permissões). Credenciais não são divulgadas.
+O primeiro acesso após inatividade pode levar cerca de um minuto para reativar
+o serviço no plano gratuito; veja os [limites oficiais](https://render.com/docs/free).
+Para instalação e execução local, consulte [DEVELOPMENT.md](../DEVELOPMENT.md).
 
 ## Estrutura reutilizada
 
@@ -21,12 +29,12 @@ Os datasets excluídos precisam de importação planejada se a funcionalidade os
 
 ## Configuração e segurança
 
-| Variável | Valor/uso futuro |
+| Variável | Configuração/uso |
 | --- | --- |
 | DJANGO_SETTINGS_MODULE | `config.render` |
 | DEBUG | `False` obrigatório |
 | SECRET_KEY | Secret exclusivo, aleatório, pelo menos 50 caracteres; nunca versionar |
-| DATABASE_URL | URL interna do futuro PostgreSQL Render, mesma região do web |
+| DATABASE_URL | URL interna do PostgreSQL Render, mesma região do web; manter somente no ambiente seguro |
 | ALLOWED_HOSTS | Host público exato, sem esquema/wildcard; separar hosts por vírgula |
 | CSRF_TRUSTED_ORIGINS | Origem HTTPS exata correspondente aos hosts autorizados, sem barra final ou caminho |
 | PORT | Fornecida pelo Render; não precisa de valor manual |
@@ -34,8 +42,8 @@ Os datasets excluídos precisam de importação planejada se a funcionalidade os
 | MUSICBRAINZ_USER_AGENT | Opcional; identificação pública apropriada da aplicação |
 
 Não há fallback para SQLite em `config.render`. Sem DATABASE_URL o runtime
-falha de forma fechada; build de estáticos continua independente. Não preencher
-com banco fictício para tentar publicar a aplicação antes da Fase 2.
+falha de forma fechada; build de estáticos continua independente. Nunca publicar
+valores de secrets ou URLs privadas do banco na documentação ou no repositório.
 
 HTTPS é obrigatório, cookies de sessão/CSRF permanecem seguros, CSRF middleware
 permanece ativo. Render usa X-Forwarded-Proto; a configuração confia nesse proxy
@@ -43,10 +51,10 @@ quando executada atrás do Render. Não publicar diretamente esse container com
 headers de proxy arbitrários. AWS conserva sua configuração CloudFront existente.
 `/health/` pode usar HTTP para sondagem interna e não consulta banco; `/readiness/`
 permanece HTTPS, executa SELECT 1 e responde 503 sem expor detalhes se o banco falhar.
-Conferir também o Host utilizado pelas sondagens durante o primeiro deploy; não
+Conferir também o Host utilizado pelas sondagens após mudanças de configuração; não
 contornar falhas ampliando ALLOWED_HOSTS para wildcard.
 
-## PostgreSQL futuro e TLS
+## PostgreSQL e TLS
 
 A conexão interna Render usa certificados autoassinados, sem suporte a verify-full.
 Somente `config.render` define sslmode=require se a URL não especificar modo:
@@ -55,21 +63,20 @@ criptografa o tráfego, mas não autentica CA/hostname como verify-full. Essa di
 verify-full continua permitido quando houver endpoint e CA compatíveis, exigindo
 sslrootcert. connect_timeout é limitado a 1–30s, padrão 5s.
 
-Na Fase 2, usar conexão interna de banco na mesma região, restringir/desativar acesso
+Manter a conexão interna de banco na mesma região, restringir/desativar acesso
 externo quando não necessário e validar TLS real e readiness. Não consultar nem
 publicar secrets nos logs. Quando usar acesso externo autorizado para exportação,
-restringir IPs, usar TLS e remover a liberação depois. Nenhuma conexão Render foi
-feita nos testes de configuração desta fase.
+restringir IPs, usar TLS e remover a liberação depois. Testes automatizados devem
+usar bancos exclusivos de teste, nunca a URL de produção.
 
 ## Blueprint e migrações no Free
 
 `render.yaml` descreve somente **um web service Free**; não contém seção databases,
 discos, jobs ou planos pagos. DATABASE_URL e secrets exigem configuração manual
-(`sync: false`). Auto-deploy está desligado. O arquivo sozinho não cria recursos,
-mas aplicar um Blueprint cria o serviço e pode iniciar o primeiro deploy: **não
-aplicar nem conectar serviços antes da autorização da Fase 2**. A região omitida
-usa o padrão do Render; escolher/revisar a mesma região para web e banco antes de
-criar ambos. Não há promessa de reservar nome ou domínio nesta preparação.
+(`sync: false`). O arquivo mantém auto-deploy desligado e não gerencia o banco
+existente. A região está omitida no YAML: em qualquer recriação, preservar a mesma
+região do banco (Ohio, US East). Para o serviço já publicado, conferir as
+configurações no painel; não aplicar um novo Blueprint para recriá-lo.
 
 Free não possui pre-deploy command, shell ou one-off jobs. O Docker Command
 é `/bin/sh /app/scripts/start-render.sh`, sem aspas externas. O script POSIX
@@ -127,55 +134,31 @@ reinício antes da limpeza, a presença de superusuário torna a execução inó
 Esse procedimento cria apenas o primeiro administrador; não recupera senhas de
 contas existentes. Não habilite logs DEBUG de SQL durante o provisionamento.
 
-## Fase 2 — somente após autorização
+## Operação e limites do plano gratuito
 
-1. Revisar/testar e autorizar publicação dos arquivos, sem acionar workflows AWS.
-2. Definir se os dados serão novos dados acadêmicos ou migração de um banco existente;
-   backup e restauração precisam ser ensaiados antes de transferir dados reais.
-3. Criar PostgreSQL **Free** próximo da data em que começarão os testes de hospedagem.
-   Prazo de 30 dias começa na criação: verificar expiração exata no painel e garantir
-   cobertura de 06/11/2026 com margem. Evitar adiar ao ponto de não haver tempo de teste.
-4. Criar o web **Free** na mesma região, sem auto-deploy; preencher variáveis acima
-   no canal seguro da plataforma, com o host efetivamente atribuído.
-5. Revisar o comando de startup e autorizar primeiro deploy. A criação do serviço
-   pode iniciar esse deploy; por isso criação e primeiro deploy precisam de aprovação.
-6. Conferir migrações concluídas, /health/ e /readiness/ 200, TLS, login/permissões,
-   DRF, CSRF, estáticos e persistência após reinício. Provisionar usuário inicial
-   por procedimento operacional separado, nunca senha em fixture/script público.
-7. Fazer exportações lógicas independentes e testar restauração antes da entrega.
-   Free não possui backups gerenciados; 1 GB de limite e expiração em 30 dias.
-   Não depender do prazo de graça: banco expirado fica inacessível sem upgrade.
-8. Abrir/testar a aplicação antes da apresentação para acomodar cold start. Após
-   15 minutos sem tráfego Free suspende; retorno pode levar cerca de um minuto.
-   Existem limites de 750 horas/workspace, tráfego e build; monitorar uso sem
-   configurar upgrades automáticos ou planos pagos.
+- Após atualizações, conferir `/health/`, `/readiness/`, login, permissões,
+  estáticos e persistência. `/health/` não consulta o banco; não substitui readiness.
+- Manter exportações lógicas independentes e testar restauração antes de mudanças
+  nos dados. PostgreSQL Free tem limite de 1 GB, não possui backups gerenciados e
+  expira 30 dias após a criação. Conferir a data exata no painel para garantir a
+  entrega de 06/11/2026; a carência não mantém o banco acessível.
+- Abrir a aplicação antes da apresentação para acomodar a reativação após
+  inatividade. Monitorar horas, tráfego e builds conforme os limites do plano.
+- Disco do container é efêmero; não depender dele para uploads ou dados persistentes.
+  A importação da base de DVDs é separada do deploy, conforme o [guia de dados](data-import.md).
+- Revisar código e migrações antes de deploys manuais, sem execuções concorrentes.
+  Não há rollback automático do schema.
 
-Recursos AWS permanecem intactos e podem continuar gerando custos. Desativação
-posterior exige autorização própria; não é parte desta fase.
+## Histórico de preparação e AWS
 
-## Validação local da Fase 1
+A preparação local anterior à publicação validou configurações Render, TLS,
+proxy, CSRF, probes e testes com bancos temporários. Naquela etapa não houve
+conexão ao Render nem build Docker local; essas limitações são históricas e não
+indicam que a aplicação atual esteja aguardando seu primeiro deploy.
 
-- 199 testes Django passaram com config.test_settings e SQLite temporário,
-  incluindo os testes existentes AWS, DRF, WhiteNoise, importação e permissões.
-- Cinco novos testes Render verificam TLS, configurações inseguras rejeitadas,
-  proxy/cookies/CSRF, probes e manutenção do desenvolvimento SQLite.
-- Checks Django normal e deploy passaram com configuração Render e credenciais
-  exclusivamente fictícias, sem abrir conexão PostgreSQL.
-- Revisão adicional rejeita listas CSRF vazias após separar vírgulas, origens
-  com barra final/caminho e portas inválidas; os casos têm cobertura nos testes.
-- Aplicação WSGI carregada com configuração Render. O comando real do Blueprint
-  foi exercitado via Git Bash com executáveis fictícios: PORT explícita e fallback
-  10000 funcionam; migração com código 17 encerra o comando com 17, sem iniciar
-  Gunicorn. Esse ensaio não executa migrações nem substitui o teste do container.
-- Gunicorn real não pode iniciar neste Windows: depende do módulo Unix `fcntl`.
-  Validar sua inicialização em Linux/Docker, sem instalar ferramentas nesta fase.
-- Blueprint validado por parser YAML e conferência local de plano Free, ausência
-  de databases e auto-deploy off. Não foi aplicado/validado via API Render.
-- Build Docker não executado: docker não está disponível neste ambiente.
-  Deve ser validado antes de autorizar o primeiro deploy, incluindo porta PORT,
-  usuário sem privilégios, estáticos e startup com PostgreSQL de teste.
-- Integração PostgreSQL Render/TLS real, memória disponível e health check do proxy
-  permanecem validações da Fase 2; sucesso local não comprova operação hospedada.
+Os [registros AWS](archive/aws.md) permanecem arquivados e não são instruções
+vigentes para o Render. A publicação no Render não comprova a desativação de
+recursos AWS; qualquer operação nesses recursos deve ser tratada separadamente.
 
 ## Referências
 

@@ -57,7 +57,8 @@ do Gunicorn; elas não rodam no build e uma falha impede o servidor de iniciar.
 Consulte o [guia principal de implantação no Render](docs/render.md).
 O Compose de produção existente é da configuração AWS legada, exige configuração
 explícita e não é um procedimento Render: consulte o [histórico AWS](docs/archive/aws.md).
-O build Docker e o Gunicorn real em Linux permanecem pendentes de validação.
+A aplicação já utiliza Docker e Gunicorn no Render. Após mudanças na imagem,
+valide o build e a inicialização em Linux/Docker antes de publicar uma nova versão.
 
 ### Configurações de ambiente
 
@@ -136,14 +137,14 @@ configurações e permissões. A implantação escolhida está em [Render](docs/
 1. Reexecutar o CI após alterações: a matriz e o build anteriores já foram validados remotamente pelo mantenedor.
 2. Ensaiar migração de uma cópia dos dados reais e restauração de backup.
 3. Preservar a automação do Project #3, já validada remotamente pelo mantenedor.
-4. Validar o container em Linux/Docker e planejar PostgreSQL Free, região, secrets,
-   importação e backups; criar serviços Render somente após autorização.
-5. Validar HTTPS, logs, health check e fluxos reais antes de autorizar produção.
+4. Validar alterações do container em Linux/Docker e manter o procedimento de
+   importação, exportação e restauração dos dados do Render.
+5. Verificar HTTPS, logs, health check e fluxos reais após atualizações autorizadas.
 6. Futuramente: armazenamento de capas, outras fontes de metadados e avaliação formal de acessibilidade.
 
 Não há alegação de conformidade WCAG ou de atualização automática do dashboard em tempo real.
 
-Próxima etapa: [Fase 2 no Render](docs/render.md). Nenhum serviço ou banco Render
-foi criado e nenhum deploy Render foi realizado. O primeiro deploy exige aprovação.
+Ambiente publicado: [operação no Render](docs/render.md). A execução local continua
+independente; não use credenciais ou banco de produção nos testes.
 O [roteiro AWS arquivado](docs/archive/aws-operations.md) é referência histórica;
 suas variáveis de ativação e Environment não controlam a implantação Render.

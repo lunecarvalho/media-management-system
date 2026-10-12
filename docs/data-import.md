@@ -28,9 +28,10 @@ Fonte: `datasets/bd_model-criacao.sql`, fornecida pelo grupo e versionada no
 repositório. É a base auxiliar local de referências de DVDs; os demais arquivos
 de `datasets/` permanecem ignorados pelo Git. O dataset não faz parte da imagem
 Docker de produção nem do ZIP padrão de deploy do Elastic Beanstalk (legado).
-O destino atual é o [Render](render.md), ainda sem deploy. O plano Free não dispõe
+O ambiente publicado está no [Render](render.md). O plano Free não dispõe
 de shell ou jobs avulsos; a importação inicial dessa base precisa de procedimento
-operacional separado, autorizado e validado na Fase 2. Os comandos abaixo descrevem
+operacional separado, autorizado e validado. A publicação não confirma que a base
+de DVDs tenha sido importada. Os comandos abaixo descrevem
 o uso do importador, não uma etapa automática do deploy Render.
 O runtime normal não executa esse SQL diretamente: o comando Django abaixo lê o
 arquivo e persiste os dados via ORM. A aplicação funciona sem essa importação,

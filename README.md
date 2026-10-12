@@ -4,19 +4,27 @@
 
 Sistema web para **catalogação, organização e gerenciamento de CDs e DVDs**, desenvolvido com Django como parte do **Projeto Integrador II da UNIVESP**.
 
+### 🌐 [Acessar o MediaTrack online](https://media-track-w5xm.onrender.com)
+
+Publicado no **Render**, utilizando **Docker, Django e PostgreSQL**.
+
 <br>
 
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Django](https://img.shields.io/badge/Django-5.2-092E20?style=for-the-badge&logo=django&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Production-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Render](https://img.shields.io/badge/Render-Planejado-000000?style=for-the-badge&logo=render&logoColor=white)
+![Render](https://img.shields.io/badge/Render-Online-000000?style=for-the-badge&logo=render&logoColor=white)
 
 </div>
 
 ---
 
 ## Sobre o projeto
+
+O endereço da aplicação está disponível publicamente para visualização da tela de
+login. O acervo, o dashboard, a API e as funcionalidades administrativas exigem
+autenticação e as permissões correspondentes. Não são divulgadas credenciais de acesso.
 
 O **MediaTrack** foi criado para auxiliar na gestão do acervo de um sebo especializado em mídias físicas.
 
@@ -85,7 +93,7 @@ Isso permite, por exemplo, que duas cópias do mesmo DVD possuam preços, estado
 | Servidor | Gunicorn |
 | Arquivos estáticos | WhiteNoise |
 | CI | GitHub Actions |
-| Hospedagem escolhida | Render Free · PostgreSQL Render Free (criação pendente) |
+| Hospedagem | Render Free · PostgreSQL Render Free |
 | Design | Figma |
 | Versionamento | Git · GitHub |
 
@@ -165,13 +173,13 @@ O pipeline de **Continuous Integration** executa validações utilizando:
 
 ## Arquitetura de produção
 
-A arquitetura planejada para o Render segue o fluxo; ainda não está implantada:
+A aplicação publicada no Render utiliza a seguinte arquitetura:
 
 ```text
 GitHub
    │
    ▼
-Render Web Service Free (deploy manual)
+Render Web Service Free
    │
    ▼
 Docker + Gunicorn
@@ -180,7 +188,7 @@ Docker + Gunicorn
 Django
    │
    ▼
-Render PostgreSQL Free (criação futura)
+Render PostgreSQL Free
 ```
 
 A configuração `config.render` exige PostgreSQL e utiliza TLS `sslmode=require`
@@ -189,8 +197,7 @@ legada em `config.production` permanece com `verify-full` e CA, isolada do Rende
 
 > [!NOTE]
 > O Render foi escolhido estrategicamente após falhas de implantação no Elastic Beanstalk.
-> A preparação inicial foi validada; nenhum serviço ou banco Render foi
-> criado e o deploy no Render ainda não foi realizado.
+> A aplicação já está publicada no Render. Os registros da AWS são mantidos como histórico.
 
 ---
 
@@ -201,7 +208,7 @@ A documentação técnica detalhada está organizada separadamente:
 - [Instalação e ambiente de desenvolvimento](DEVELOPMENT.md)
 - [Arquitetura, permissões e migrações](docs/architecture.md)
 - [Importação CSV e fontes de metadados](docs/data-import.md)
-- [Hospedagem no Render e plano da Fase 2](docs/render.md)
+- [Hospedagem e operação no Render](docs/render.md)
 - [Automação do GitHub Project](docs/github-project.md)
 
 Histórico técnico, sem instruções de implantação vigentes:
@@ -213,23 +220,14 @@ Histórico técnico, sem instruções de implantação vigentes:
 
 ---
 
-## Executando localmente
-
-Consulte o guia completo de configuração do ambiente:
-
-➡️ **[DEVELOPMENT.md](DEVELOPMENT.md)**
-
----
-
 ## Status do projeto
 
-O MediaTrack está em desenvolvimento ativo.
+O MediaTrack está publicado em produção no Render e permanece em desenvolvimento ativo.
 
 Atualmente, a aplicação possui a arquitetura principal, autenticação, gerenciamento do acervo, API REST, integrações, testes automatizados e pipeline de CI configurados.
 
-As próximas etapas são validar o container em Linux/Docker, definir a região e o
-procedimento de dados/backups, criar o PostgreSQL e o Web
-Service Free no Render.
+As atividades de manutenção incluem acompanhar os limites e a expiração do plano
+gratuito, manter exportações dos dados e validar alterações antes de novos deploys.
 
 ---
 
