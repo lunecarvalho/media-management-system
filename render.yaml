@@ -9,7 +9,7 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health/
     # Free não possui preDeployCommand. Instância única, migrações antes do servidor.
-    dockerCommand: sh -c 'python manage.py migrate --noinput && exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-10000} --workers 2 --timeout 45 --access-logfile - --error-logfile -'
+    dockerCommand: /bin/sh /app/scripts/start-render.sh
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: config.render
