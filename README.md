@@ -161,9 +161,6 @@ O pipeline de **Continuous Integration** executa validações utilizando:
 - validação do pacote de produção
 - build Docker
 
-O deploy no Render será **manual**, conforme o [guia de implantação](docs/render.md).
-Os workflows AWS existentes são legados e não fazem parte desse procedimento.
-
 ---
 
 ## Arquitetura de produção

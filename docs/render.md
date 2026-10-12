@@ -72,7 +72,14 @@ usa o padrão do Render; escolher/revisar a mesma região para web e banco antes
 criar ambos. Não há promessa de reservar nome ou domínio nesta preparação.
 
 Free não possui pre-deploy command, shell ou one-off jobs. O Docker Command
-preparado é `sh -c 'python manage.py migrate --noinput && exec gunicorn ...'`.
+é `/bin/sh /app/scripts/start-render.sh`, sem aspas externas. O script POSIX
+`scripts/start-render.sh` executa migrações e, somente em caso de sucesso, substitui
+o shell pelo Gunicorn com `exec`. Usa PORT do Render, com fallback 10000.
+Isso evita problemas de interpretação das aspas do comando composto no painel.
+O Dockerfile já inclui o script via `COPY . .`; a chamada explícita de `/bin/sh`
+dispensa permissão executável. `.gitattributes` mantém o script com finais LF.
+Manter `DJANGO_SETTINGS_MODULE=config.render` no ambiente do serviço, pois o
+Dockerfile conserva `config.production` como padrão para os usos existentes.
 Migrações rodam no início do container, com acesso ao banco em runtime. Se falham,
 Gunicorn não inicia. Não rodam no build, nem no startup AWS padrão.
 
@@ -83,6 +90,42 @@ versão anterior pode continuar atendendo: só usar migrações compatíveis ou 
 controlada. Não há rollback automático de schema; a migração Produto/Exemplar é
 intencionalmente irreversível. Migrações grandes podem exceder o prazo de startup.
 Se isso ocorrer, parar e planejar execução controlada externa, não repetir cegamente.
+
+## Primeiro administrador no Render Free (procedimento temporário)
+
+As credenciais locais não são copiadas para o PostgreSQL de produção. Para um
+serviço já funcionando e com migrações aplicadas, use o procedimento abaixo
+somente depois de publicar os arquivos revisados no repositório usado pelo Render.
+Não é necessário Shell interativo, job pago ou alteração do Dockerfile.
+
+1. Em Environment do serviço, configure `DJANGO_SUPERUSER_USERNAME`,
+   `DJANGO_SUPERUSER_EMAIL` e `DJANGO_SUPERUSER_PASSWORD`. Use uma senha forte,
+   exclusiva e armazenada no gerenciador de senhas. Não use argumentos de comando,
+   arquivos versionados, prints ou capturas dessas variáveis.
+2. Troque temporariamente Docker Command para
+   `/bin/sh /app/scripts/bootstrap-render-admin.sh`, sem aspas externas.
+   Preserve `DJANGO_SETTINGS_MODULE=config.render` e as demais variáveis.
+   Aplique as mudanças em uma única inicialização/deploy manual, sem execuções
+   concorrentes. Esse deploy é necessário para executar o comando no plano Free.
+3. O comando `bootstrap_render_admin` chama o `createsuperuser` nativo em modo
+   não interativo, usando somente as variáveis acima. Valida a senha antes de criar
+   o usuário, pois o modo não interativo nativo não executa esses validadores.
+   Os logs indicam sucesso, ausência de alterações ou erro genérico, sem senha.
+   Depois, o script remove essas variáveis do ambiente herdado pelo Gunicorn e
+   inicia o script normal `start-render.sh`, sem modificá-lo.
+4. Confirme o acesso a `/admin/`. O superusuário não precisa de Perfil para esse
+   acesso. Se já existir qualquer superusuário, o provisionamento não cria outro
+   nem altera senha, e-mail ou permissões. Se o nome pertencer a usuário comum,
+   o comando falha sem promovê-lo. Falhas impedem o início do servidor nesse modo
+   temporário; para restabelecer o serviço, retorne ao comando normal.
+5. Retorne Docker Command a `/bin/sh /app/scripts/start-render.sh` e **exclua as
+   três variáveis `DJANGO_SUPERUSER_*` do painel Render**. Aplique a limpeza e
+   reinicialização/deploy. A conta permanece no PostgreSQL; a senha não é redefinida.
+
+O comando normal e o `render.yaml` não acionam o provisionamento. Se houver um
+reinício antes da limpeza, a presença de superusuário torna a execução inócua.
+Esse procedimento cria apenas o primeiro administrador; não recupera senhas de
+contas existentes. Não habilite logs DEBUG de SQL durante o provisionamento.
 
 ## Fase 2 — somente após autorização
 

@@ -1,1 +1,2 @@
 /scripts/start-render.sh text eol=lf
+/scripts/bootstrap-render-admin.sh text eol=lf
