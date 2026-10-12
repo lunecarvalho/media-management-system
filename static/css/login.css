@@ -23,13 +23,8 @@
         .login-logo {
             width: 44px;
             height: 44px;
-            border-radius: 50%;
-            background-color: var(--cor-primaria);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: var(--cor-fundo);
+            display: block;
+            color: var(--cor-primaria);
             flex-shrink: 0;
         }
 
@@ -46,8 +41,13 @@
             margin-top: 16px;
         }
 
+        .login-form input[type="text"],
+        .login-form input[type="password"] {
+            width: 100%;
+        }
+
         .login-form button {
             width: 100%;
             margin-top: 24px;
         }
-    
+
