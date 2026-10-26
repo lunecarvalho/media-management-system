@@ -3,6 +3,7 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 ROLES = {
     'funcionario': {'consultar', 'editar_acervo'},
+    'avaliador': {'consultar', 'editar_acervo'},
     'administrador': {'consultar', 'editar_acervo', 'excluir_acervo', 'categorias'},
     'proprietario': {'consultar', 'editar_acervo', 'excluir_acervo', 'categorias', 'usuarios'},
 }

@@ -134,6 +134,51 @@ reinício antes da limpeza, a presença de superusuário torna a execução inó
 Esse procedimento cria apenas o primeiro administrador; não recupera senhas de
 contas existentes. Não habilite logs DEBUG de SQL durante o provisionamento.
 
+## Conta de avaliador acadêmico
+
+O perfil `Avaliador` é um `Perfil` Django ativo, sem `is_staff` e sem
+`is_superuser`. Ele recebe apenas `consultar` e `editar_acervo`: isso permite
+testar o dashboard, consultas, movimentações, cadastro/edição do acervo,
+pesquisa de metadados e os endpoints de leitura/escrita do acervo. Não recebe
+`excluir_acervo`, `categorias` ou `usuarios`; portanto não gerencia contas,
+grupos, permissões, configurações administrativas, categorias ou exclusões.
+`AcessoInternoMiddleware` e `AcessoAPI` usam a mesma política, inclusive para
+requisições diretas à API. O perfil equivalente no formulário interno é
+propositalmente mantido, mas a conta abaixo deve ser criada pelo comando
+controlado.
+
+O provisionamento não é executado pelo deploy normal. Para criar a conta uma
+única vez no PostgreSQL de produção, depois de publicar os arquivos revisados:
+
+1. No Environment do web service Render, configure temporariamente
+   `DJANGO_EVALUATOR_USERNAME`, `DJANGO_EVALUATOR_EMAIL` e
+   `DJANGO_EVALUATOR_PASSWORD`. Gere uma senha exclusiva, forte e armazenada no
+   gerenciador de senhas; não a coloque em comandos, arquivos, prints ou logs.
+2. Altere temporariamente Docker Command para
+   `/bin/sh /app/scripts/bootstrap-render-evaluator.sh`, sem aspas externas.
+   Preserve `DJANGO_SETTINGS_MODULE=config.render`, `DATABASE_URL` e as demais
+   variáveis. Faça somente um deploy/reinício manual e não execute duas
+   inicializações concorrentes.
+3. O comando `bootstrap_render_evaluator` lê somente as três variáveis,
+   valida a senha, cria o usuário com perfil `avaliador` em uma transação e
+   força `is_staff=False` e `is_superuser=False`. O script remove as variáveis
+   antes de iniciar o Gunicorn chamando `scripts/start-render.sh`.
+4. Confirme o login e teste `/`, `/acervo/`, `/movimentacoes/` e `/api/`. A
+   execução repetida para o mesmo avaliador seguro é inócua: não troca senha,
+   e-mail ou permissões. Se o nome já pertencer a outra conta, o comando falha
+   sem promovê-la nem alterá-la.
+5. Após confirmar a criação, retorne Docker Command para
+   `/bin/sh /app/scripts/start-render.sh`, remova as três variáveis
+   `DJANGO_EVALUATOR_*` do painel Render e reinicie/deploye novamente. O script
+   de bootstrap permanece versionado, mas não é público nem chamado pelo
+   startup normal; o mecanismo temporário fica desativado pela restauração do
+   comando e pela remoção das variáveis.
+
+Esse procedimento não acessa diretamente dados de produção, não cria endpoint
+público, não redefine contas existentes e não altera o PostgreSQL além do novo
+usuário e seu perfil. Não use o comando normal para provisionar e não inclua
+credenciais em `render.yaml`.
+
 ## Operação e limites do plano gratuito
 
 - Após atualizações, conferir `/health/`, `/readiness/`, login, permissões,

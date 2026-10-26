@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 
 from django.core.exceptions import ValidationError
+from django.db import connection
 from django.db import transaction
 from django.db.models import Q
 
@@ -49,41 +50,148 @@ def ler(path):
     return rows
 
 
+def validar_registro(values, seen):
+    """Valida uma linha e classifica duplicatas somente em memória."""
+    if values is None:
+        raise ValidationError('INSERT inválido; utilize quatro valores e uma linha por registro.')
+    ean, title, director, year = values
+    if not ean or not title or not director or year is None:
+        raise ValidationError('EAN, título, diretor e ano são obrigatórios.')
+    if len(title) > 200:
+        raise ValidationError('Título excede os 200 caracteres aceitos pelo cadastro de Produto.')
+    film = FilmeReferencia(
+        ean=ean,
+        titulo=title,
+        titulo_original=title,
+        diretor=director,
+        ano=int(year),
+        origem=SOURCE,
+    )
+    film.full_clean(validate_unique=False)
+    signature = (title, director, film.ano)
+    if ean in seen:
+        if seen[ean] != signature:
+            raise ValidationError(
+                'EAN repetido com dados divergentes no arquivo; primeira ocorrência mantida.'
+            )
+        return 'duplicado_igual', None
+    seen[ean] = signature
+    return 'valido', film
+
+
+def simular(path):
+    """Analisa o arquivo sem consultas ou alterações no banco."""
+    rows = ler(path)
+    report = {
+        'processados': len(rows),
+        'validos': 0,
+        'invalidos': 0,
+        'duplicados_iguais': 0,
+        'duplicados_conflitantes': 0,
+        'conflitos_banco': 'nao_verificados',
+        'erros': [],
+    }
+    seen = {}
+    for line, values in rows:
+        try:
+            category, _ = validar_registro(values, seen)
+        except (ValidationError, ValueError, TypeError) as exc:
+            category = (
+                'duplicados_conflitantes'
+                if isinstance(exc, ValidationError)
+                and 'EAN repetido com dados divergentes' in str(exc)
+                else 'invalidos'
+            )
+            report['erros'].append({
+                'linha': line,
+                'erro': '; '.join(exc.messages)
+                if isinstance(exc, ValidationError) else 'Ano inválido.',
+            })
+        category_key = {
+            'valido': 'validos',
+            'duplicado_igual': 'duplicados_iguais',
+        }.get(category, category)
+        report[category_key] += 1
+    report['categorias'] = {
+        key: report[key]
+        for key in (
+            'validos',
+            'invalidos',
+            'duplicados_iguais',
+            'duplicados_conflitantes',
+        )
+    }
+    return report
+
+
+def preflight(path, expected_database=None, expected_schema='public'):
+    """Valida o arquivo e consulta somente conflitos no banco selecionado."""
+    report = simular(path)
+    if report['invalidos'] or report['duplicados_conflitantes']:
+        return {
+            **report,
+            'banco': {'database': None, 'schema': None},
+            'conflitos_outra_origem': [],
+            'existentes_mesma_origem': [],
+        }
+
+    with connection.cursor() as cursor:
+        cursor.execute('SELECT current_database(), current_schema()')
+        database_name, schema_name = cursor.fetchone()
+    if expected_database and database_name != expected_database:
+        raise ValueError('O banco conectado não corresponde ao alvo confirmado.')
+    if expected_schema and schema_name != expected_schema:
+        raise ValueError('O schema conectado não corresponde ao alvo confirmado.')
+
+    rows = ler(path)
+    seen = {}
+    eans = []
+    for _, values in rows:
+        category, film = validar_registro(values, seen)
+        if category == 'valido':
+            eans.append(film.ean)
+    existing = FilmeReferencia.objects.filter(ean__in=eans).values_list('ean', 'origem')
+    conflicts = sorted(ean for ean, origin in existing if origin != SOURCE)
+    same_source = sorted(ean for ean, origin in existing if origin == SOURCE)
+    return {
+        **report,
+        'banco': {'database': database_name, 'schema': schema_name},
+        'conflitos_outra_origem': conflicts,
+        'existentes_mesma_origem': same_source,
+    }
+
+
 @transaction.atomic
-def importar(path):
+def importar(path, strict=False):
     rows = ler(path)  # Validar a estrutura inteira antes de gravar.
     report = dict(processados=0, criados=0, atualizados=0, ignorados=0, invalidos=0, erros=[])
     seen = {}
     for line, values in rows:
         report['processados'] += 1
         try:
-            if values is None:
-                raise ValidationError('INSERT inválido; utilize quatro valores e uma linha por registro.')
-            ean, title, director, year = values
-            if not ean or not title or not director or year is None:
-                raise ValidationError('EAN, título, diretor e ano são obrigatórios.')
-            if len(title) > 200:
-                raise ValidationError('Título excede os 200 caracteres aceitos pelo cadastro de Produto.')
-            film = FilmeReferencia(ean=ean, titulo=title, titulo_original=title,
-                                   diretor=director, ano=int(year), origem=SOURCE)
-            film.full_clean(validate_unique=False)
-            signature = (title, director, film.ano)
-            if ean in seen:
-                if seen[ean] != signature:
-                    raise ValidationError('EAN repetido com dados divergentes no arquivo; primeira ocorrência mantida.')
+            category, film = validar_registro(values, seen)
+            if category == 'duplicado_igual':
                 report['ignorados'] += 1
                 continue
-            seen[ean] = signature
+            ean = film.ean
             current = FilmeReferencia.objects.select_for_update().filter(ean=ean).first()
             if current and current.origem != SOURCE:
                 raise ValidationError('EAN pertence a outra fonte; revisão manual necessária.')
-            fields = dict(titulo=title, titulo_original=title, diretor=director, ano=film.ano, origem=SOURCE)
+            fields = dict(
+                titulo=film.titulo,
+                titulo_original=film.titulo_original,
+                diretor=film.diretor,
+                ano=film.ano,
+                origem=SOURCE,
+            )
             if current and all(getattr(current, key) == value for key, value in fields.items()):
                 report['ignorados'] += 1
             else:
                 _, created = FilmeReferencia.objects.update_or_create(ean=ean, defaults=fields)
                 report['criados' if created else 'atualizados'] += 1
         except (ValidationError, ValueError, TypeError) as exc:
+            if strict:
+                raise
             report['invalidos'] += 1
             report['erros'].append({'linha': line, 'erro': '; '.join(exc.messages)
                 if isinstance(exc, ValidationError) else 'Ano inválido.'})

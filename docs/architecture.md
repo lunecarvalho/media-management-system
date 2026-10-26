@@ -15,12 +15,20 @@ acervo/services.py centraliza alterações do estoque em transações e valida e
 | Perfil ativo | Ações |
 | --- | --- |
 | Funcionário | Consultar e editar acervo, importação e pesquisa de metadados |
+| Avaliador | Consultar e editar acervo, importação e pesquisa de metadados; sem exclusão |
 | Administrador | Ações anteriores, categorias e cancelamento/exclusão funcional |
 | Proprietário | Ações anteriores e gestão de usuários |
 
 Usuário anônimo não acessa páginas internas nem API. Perfil inativo bloqueia ações protegidas, inclusive para superusuário com perfil explicitamente inativo. Superusuário sem perfil é permitido para administração inicial. O Admin também mantém os requisitos nativos de staff/permissões Django. Login e health check permanecem públicos; logout é POST.
 
 API usa autenticação por sessão e CSRF, paginação e envelope de erro. /api/itens/ preserva a rota de compatibilidade; /api/exemplares/ e /api/produtos/ expõem a nova arquitetura.
+
+O perfil Avaliador usa o mesmo mecanismo `Perfil` e a política centralizada de
+autorização, mas não é `is_staff` nem `is_superuser`. Pode testar dashboard,
+consultas, movimentações, cadastro/edição de produtos e exemplares, leitura da
+API e pesquisa de metadados. Não pode excluir exemplares, alterar categorias,
+gerenciar usuários, acessar configurações administrativas ou usar o Django Admin;
+essas restrições também são aplicadas pela API, não apenas pela interface HTML.
 
 ## Migrações
 

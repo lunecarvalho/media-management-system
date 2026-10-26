@@ -45,6 +45,46 @@ python manage.py importar_filmes
 python manage.py importar_filmes --arquivo CAMINHO_DO_SQL
 ```
 
+Para validar o arquivo sem consultar nem alterar o banco, use o modo somente em
+memória:
+
+```text
+python manage.py importar_filmes --arquivo datasets/bd_model-criacao.sql --dry-run
+```
+
+O relatório do `--dry-run` expõe cada linha em exatamente uma categoria no nível
+superior: `validos`, `invalidos`, `duplicados_iguais` ou
+`duplicados_conflitantes`. A soma dessas categorias é `processados`. O campo
+`categorias` também repete esse agrupamento para consumidores que usam a forma
+anterior. `conflitos_banco` permanece
+`nao_verificados`, porque a simulação não consulta `FilmeReferencia` nem
+qualquer outro banco. O modo não executa `select_for_update`,
+`update_or_create`, `save` ou outras operações de persistência. Ele também não
+aceita `--legado-csv`.
+
+Para uma importação pontual em um processo autorizado que tenha as variáveis de
+produção carregadas sem expô-las, use o modo de preflight. Ele confirma o banco
+por nome, consulta somente conflitos existentes e só continua após a confirmação
+interativa:
+
+```text
+python manage.py importar_filmes --settings=config.render --arquivo CAMINHO_DO_SQL --confirmar-banco mediatrack --confirmar
+```
+
+O preflight aborta se houver registros inválidos, duplicatas conflitantes ou EANs
+de outra origem. O comando imprime apenas o relatório e a identidade técnica do
+banco; não imprime a URL nem credenciais. A confirmação exige digitar exatamente
+`CONFIRMAR`. Após a confirmação, o importador existente é executado em modo
+estrito: qualquer erro de validação é propagado para o `transaction.atomic`, que
+reverte a operação inteira. O comportamento padrão sem `--confirmar` continua
+aceitando e relatando erros individuais como antes.
+
+Antes de usar esse modo, confirme um backup recuperável ou exportação dos dados,
+pois o PostgreSQL Free pode expirar e o projeto não fornece rollback de dados.
+Use somente um executor autorizado, com o arquivo disponibilizado
+temporariamente. Não configure a opção no startup, no Dockerfile ou em
+`render.yaml`, e remova o arquivo temporário após a operação.
+
 `DVD_DATASET_PATH` substitui opcionalmente o caminho padrão. Em produção, execute o
 comando em um processo operacional com as configurações/credenciais do banco alvo
 e acesso ao arquivo (por exemplo, montagem somente leitura). Depois da importação,

@@ -16,6 +16,9 @@ class RESTAPITests(TestCase):
             user = User.objects.create_user(role)
             Perfil.objects.create(usuario=user, tipo=role)
             self.users[role] = user
+        evaluator = User.objects.create_user('avaliador')
+        Perfil.objects.create(usuario=evaluator, tipo='avaliador')
+        self.users['avaliador'] = evaluator
         self.category = Categoria.objects.create(nome='Rock', descricao='Musica')
         self.product = Produto.objects.create(
             tipo='CD', titulo='Album', artista_diretor='Band',
@@ -132,6 +135,24 @@ class RESTAPITests(TestCase):
 
         self.client.force_authenticate(self.users['funcionario'])
         response = self.client.delete(f'/api/exemplares/{self.item.pk}/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_evaluator_can_write_archive_but_cannot_delete(self):
+        self.client.force_authenticate(self.users['avaliador'])
+
+        response = self.client.post('/api/produtos/', self.product_payload())
+        self.assertEqual(response.status_code, 201)
+        product_id = response.json()['id']
+
+        response = self.client.patch(
+            f'/api/produtos/{product_id}/',
+            {'titulo': 'Filme para avaliação'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['titulo'], 'Filme para avaliação')
+
+        response = self.client.delete(f'/api/produtos/{product_id}/')
         self.assertEqual(response.status_code, 403)
 
     def test_movimentacoes_are_read_only(self):

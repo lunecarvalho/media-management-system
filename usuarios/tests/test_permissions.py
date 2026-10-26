@@ -8,8 +8,13 @@ class AccessTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.users = {}
-        for role in ('funcionario', 'administrador', 'proprietario'):
-            user = User.objects.create_user(role, password='test-password', is_staff=True)
+        for role in ('funcionario', 'avaliador', 'administrador', 'proprietario'):
+            user = User.objects.create_user(
+                role,
+                password='test-password',
+                is_staff=role != 'avaliador',
+                is_superuser=False,
+            )
             Perfil.objects.create(usuario=user, tipo=role)
             cls.users[role] = user
         cls.category = Categoria.objects.create(nome='Rock')
@@ -55,3 +60,19 @@ class AccessTests(TestCase):
     def test_employee_can_read_api(self):
         self.client.force_login(self.users['funcionario'])
         self.assertEqual(self.client.get('/api/itens/').status_code, 200)
+
+    def test_evaluator_can_test_archive_but_not_administer(self):
+        self.client.force_login(self.users['avaliador'])
+        self.assertFalse(self.users['avaliador'].is_staff)
+        self.assertFalse(self.users['avaliador'].is_superuser)
+        self.assertEqual(self.client.get('/').status_code, 200)
+        self.assertEqual(self.client.get('/acervo/').status_code, 200)
+        self.assertEqual(self.client.get('/movimentacoes/').status_code, 200)
+        self.assertEqual(self.client.get('/configuracoes/').status_code, 200)
+        self.assertEqual(self.client.get('/api/itens/').status_code, 200)
+        self.assertEqual(self.client.get('/api/movimentacoes/').status_code, 200)
+        self.assertEqual(self.client.get('/usuarios/lista/').status_code, 403)
+        self.assertEqual(self.client.get('/admin/').status_code, 403)
+        self.assertEqual(self.client.post('/categorias/', {'nome': 'Denied'}).status_code, 403)
+        self.assertEqual(self.client.post('/api/categorias/', {'nome': 'Denied'}).status_code, 403)
+        self.assertEqual(self.client.delete(f'/api/itens/{self.item.pk}/').status_code, 403)

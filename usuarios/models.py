@@ -8,6 +8,7 @@ class Perfil(models.Model):
     TIPO_CHOICES = (
         ('proprietario', 'Proprietário'),
         ('administrador', 'Administrador'),
+        ('avaliador', 'Avaliador'),
         ('funcionario', 'Funcionário'),
     )
     
