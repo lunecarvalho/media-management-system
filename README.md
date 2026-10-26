@@ -28,10 +28,6 @@ autenticação e as permissões correspondentes. Não são divulgadas credenciai
 
 O **MediaTrack** foi criado para auxiliar na gestão do acervo de um sebo especializado em mídias físicas.
 
-O acesso acadêmico usa o perfil restrito `Avaliador`, criado somente pelo
-procedimento controlado descrito em [docs/render.md](docs/render.md#conta-de-avaliador-acadêmico).
-Não há credenciais de produção no repositório.
-
 A aplicação permite administrar separadamente o **produto comercial** e seus **exemplares físicos**, possibilitando que diferentes unidades de um mesmo CD ou DVD compartilhem informações como título, artista, ano e código de barras, mantendo individualmente dados como estado de conservação, preço, localização e disponibilidade.
 
 O projeto também explora conceitos de desenvolvimento web, APIs REST, bancos de dados relacionais, integração com serviços externos, testes automatizados, containers e CI/CD.
@@ -226,7 +222,7 @@ Histórico técnico, sem instruções de implantação vigentes:
 
 ## Status do projeto
 
-O MediaTrack está publicado em produção no Render e permanece em desenvolvimento ativo.
+O MediaTrack está publicado em produção no Render.
 
 Atualmente, a aplicação possui a arquitetura principal, autenticação, gerenciamento do acervo, API REST, integrações, testes automatizados e pipeline de CI configurados.
 
